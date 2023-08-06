@@ -12,6 +12,10 @@
 /* Board rows */
 #board {
   list-style: none;
+    /* can remove to prevent leak if need */
+  /* background-color: var(--dark);
+  width: fit-content;
+  z-index: -1; */
 }
 #board li {
   display: inline-block;
@@ -21,26 +25,22 @@
   height: var(--square);
   width: var(--square);
 } 
-#empty{
-  display: none;
-}
 .square {
   width: var(--square);
   height: var(--square);
   position: relative;
   font-size: calc(var(--square) / 4.3);
+  z-index: 1;
 }
-
 .light {
   background-color: var(--light);
   color: var(--dark);
 }
-
 .dark {
   background-color: var(--dark);
   color: var(--light);
 }
-
+/* Coordinates */
 .column {
   position: absolute;
   bottom: 1%;
@@ -50,4 +50,37 @@
   position: absolute;
   top: 1%;
   left: 2%;
+}
+/* Peices */
+.column, .row {
+  user-select: none;
+  background-color: transparent;
+}
+.occupied {
+  cursor: grab;
+}
+.pieces {
+  width:inherit;
+  height: auto;
+  z-index: 2;
+  user-select: none;
+  position: relative;
+}
+.pieces {
+  cursor: grab;
+}
+.pieces:active {
+  cursor: grabbing;
+}
+/* Highlight */
+.square.highlighted::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(255, 41, 41, 0.65);
+  pointer-events: none; 
+  z-index: 1;
 }
