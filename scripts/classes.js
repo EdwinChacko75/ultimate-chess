@@ -1,3 +1,22 @@
+function findIndex(arr, value) {
+    for (let i = 0; i < arr.length; i++) {
+        if (arr[i] == value) {
+            return i;
+        }
+    }
+    return -1;
+}
+function compareNodeListToArray(nodeList, array) {
+    if (nodeList.length !== array.length) {
+        return false;
+    }
+    for (let i = 0; i < nodeList.length; i++) {
+        if (nodeList[i] !== array[i]) {
+            return false;
+        }
+    }
+    return true;
+}
 export class ChessBoard {
     constructor() {
         this.color = "white";
@@ -11,8 +30,8 @@ export class ChessBoard {
                 let color = i == 7 ? this.color : this.opponent;
                 let j = 0;
                 pieces.forEach(piece => {
-                    let pieceObject =  Piece.createPiece(piece, color, [i,j])
-                    row.push(pieceObject);
+                    row.push(Piece.createPiece(piece, color, [i,j]));
+                    j++;
                 })
             }
             else if (i == 1 || i == 6){
@@ -41,13 +60,12 @@ export class ChessBoard {
     static pxToVw(px) {
         return (100 * px) / document.documentElement.clientWidth;
     }
-
+    
     flipBoard(color) {
         color = color == 'black' ? 'black' : "white";
         this.createChessBoard(this.board, color);
-        console.log(this.board)
     }
-
+    
     createChessBoard(board, color) {
         ChessBoard.removeBoard();
 
@@ -72,7 +90,7 @@ export class ChessBoard {
                 let squareHTML = '<li id="' + columns[j] + rows[i]  + '" class="square '+ squareColor +'">';
 
                 if (board[i][j].type !== "Empty") { 
-                    squareHTML += '<img class="pieces" src="../img/chesspieces/wikipedia/'+ board[i][j].color + board[i][j].type +'.png">';
+                    squareHTML += '<img class="pieces '+ board[i][j].type + '" src="../img/chesspieces/wikipedia/'+ board[i][j].color + board[i][j].type +'.png">';
                 }
                 if (i == 7 && j == 0){
                     squareHTML += '<p class="row ' + squareColor +'">' + rows[i] + '<p class="column">' + columns[j] + '</p>'
@@ -96,6 +114,9 @@ export class ChessBoard {
         squares.forEach(square => {
             square.addEventListener('contextmenu', function(event) {
                 event.preventDefault();
+                squares.forEach(square => {
+                    square.classList.remove('newhighlight');
+            });
                 if (event.target.classList.contains('highlighted')) {
                     event.target.classList.remove('highlighted'); 
                 }
@@ -103,9 +124,11 @@ export class ChessBoard {
                     event.target.classList.add('highlighted');
                 }
             });
+
         });
 
         var piecesClass = document.querySelectorAll('.pieces');
+
         piecesClass.forEach(piece => {
             piece.addEventListener('contextmenu', function(event) {
                 event.preventDefault();
@@ -119,14 +142,69 @@ export class ChessBoard {
             });
         });
 
-        // Removing highlighting when left clicking anywhere on board
-        squares.forEach(square => {
-            square.addEventListener('click', function(event) {
+        // Highlighting moves when left clicking on a piece
+        let moves = [];
+        let lastPiece = null;
+        let lastLastPiece = null;
+        piecesClass.forEach(piece => {
+            piece.addEventListener('click', function(event) {
+                
+
+                event.stopPropagation();
+                let letter = piece.parentNode.id[0];
+                let indice = piece.parentNode.id[1];
+                let row = findIndex(rows, indice)
+                let column = findIndex(columns, letter)
+                
+                moves = board[row][column].getMoves(board, [row, column]);
+
                 squares.forEach(square => {
-                    square.classList.remove('highlighted'); 
-                });
+                    if (square.classList.contains('highlighted')) {
+                        square.classList.remove('highlighted');
+                    }
+                    else if (square.classList.contains('newhighlight')) {
+                        square.classList.remove('newhighlight');
+                    }
+                    
+                });  
+                console.log(this, lastPiece, lastLastPiece);
+                if (lastPiece != this || lastPiece == null || lastLastPiece == this ) {
+                    if (lastLastPiece == this) {
+                        lastLastPiece = null;
+                        lastPiece = null;
+                    }
+                    moves.forEach(move => {
+
+                        let id = columns[move[1]] + rows[move[0]];
+                        let element = document.getElementById(id);
+                        
+                        if (element.classList.contains("newhighlight")) {
+                            element.classList.remove("newhighlight");
+                        }
+                        else {
+                            element.classList.add("newhighlight");
+                        }
+                    });
+                
+                }   
+            lastLastPiece = lastPiece;
+            lastPiece = this;
+
+            
             });
         });
+
+        // Removing highlighting when left clicking new square or piece or right clicking
+        squares.forEach(square => {
+            square.addEventListener('click', function(event) {
+                    squares.forEach(square => {
+                        square.classList.remove('highlighted');
+                        square.classList.remove('newhighlight');
+                });
+            });
+        });      
+    ;
+
     }
 
     static arr(ctx, fromx, fromy, tox, toy, arrowWidth, color){
@@ -170,52 +248,52 @@ export class ChessBoard {
     // }
 
     // get the coords a to b
-    arrowCoords() {
+    // arrowCoords() {
 
-        var squares = document.querySelectorAll('.square');
-        var pieces = document.querySelectorAll('.pieces');
+    //     var squares = document.querySelectorAll('.square');
+    //     var pieces = document.querySelectorAll('.pieces');
 
-        let startSquare = null;
+    //     let startSquare = null;
 
-        squares.forEach(square => {
-            square.addEventListener('mousedown', function(event) {
-                if (event.button === 2) {
-                    startSquare = event.target.id;
-                    res.push(startSquare);
-                }
-            });
-        });
+    //     squares.forEach(square => {
+    //         square.addEventListener('mousedown', function(event) {
+    //             if (event.button === 2) {
+    //                 startSquare = event.target.id;
+    //                 res.push(startSquare);
+    //             }
+    //         });
+    //     });
 
-        pieces.forEach(piece => {
-            piece.addEventListener('mousedown', function(event) {
-                if (event.button === 2) {
-                    startSquare = event.target.parentNode.id;
-                    res.push(startSquare);
-                }
-            });
-        });
+    //     pieces.forEach(piece => {
+    //         piece.addEventListener('mousedown', function(event) {
+    //             if (event.button === 2) {
+    //                 startSquare = event.target.parentNode.id;
+    //                 res.push(startSquare);
+    //             }
+    //         });
+    //     });
 
-        document.addEventListener('mouseup', function(event) {
-            if (event.button === 2) {
-                let endSquare = null;
-                if (event.target.classList.contains('square')) {
-                    endSquare = event.target.id;
-                } else if (event.target.classList.contains('pieces')) {
-                    endSquare = event.target.parentNode.id;
-                }
-                if (endSquare) {
-                    res.push(endSquare);
-                    res = res.filter(item => item !== "");
-                    if (res[0] != res[1] && res[0] && res[1]){
-                        drawArrow(res);
-                    }
+    //     document.addEventListener('mouseup', function(event) {
+    //         if (event.button === 2) {
+    //             let endSquare = null;
+    //             if (event.target.classList.contains('square')) {
+    //                 endSquare = event.target.id;
+    //             } else if (event.target.classList.contains('pieces')) {
+    //                 endSquare = event.target.parentNode.id;
+    //             }
+    //             if (endSquare) {
+    //                 res.push(endSquare);
+    //                 res = res.filter(item => item !== "");
+    //                 if (res[0] != res[1] && res[0] && res[1]){
+    //                     drawArrow(res);
+    //                 }
 
-                    res = [];
-                }
-                startSquare = null;
-            }
-        });
-    }
+    //                 res = [];
+    //             }
+    //             startSquare = null;
+    //         }
+    //     });
+    // }
 }
 
 export class Piece {
@@ -246,6 +324,30 @@ export class Piece {
             default:
                 throw new Error('Invalid piece type');
         }
+    }
+    getMovesFromDirection(board, directions) {
+        let moves = [];
+        let row = this.position[0];
+        let col = this.position[1];
+
+        for(let dir of directions) {
+            let i = 1;
+            do {
+                let newRow = row + i * dir[0];
+                let newCol = col + i * dir[1];
+                
+                if (newRow < 0 || newRow >= 8 || newCol < 0 || newCol >= 8 || board[newRow][newCol].color === this.color) {
+                    break;
+                } else if (board[newRow][newCol].type !== "Empty" && board[newRow][newCol].color !== this.color){
+                    moves.push([newRow, newCol]);
+                    break;
+                }
+                moves.push([newRow, newCol]);
+                i++;
+            } 
+            while (true && this.type !== "Knight" && this.type !== "King");
+        }
+        return moves;
     }
 }
 
@@ -304,7 +406,7 @@ export class Pawn extends Piece {
         }
         return moves;
     }
-    
+
     promote(promoted) {
         let newPiece;
         switch (promoted) {
@@ -338,25 +440,52 @@ export class Rook extends Piece {
     constructor(color, position) {
         super('Rook', color, position);
     }
+    getMoves(board) {
+        let directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+
+        return this.getMovesFromDirection(board, directions);
+    }
+
+}
+export class Bishop extends Piece {
+    constructor(color, position) {
+        super('Bishop', color, position);
+    }
+    getMoves(board) {
+        let directions = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+        
+        return this.getMovesFromDirection(board, directions);
+    }
 }
 export class Knight extends Piece {
     constructor(color, position) {
         super('Knight', color, position);
     }
-}
-export class Bishop extends Piece {
-    constructor(color, position) {
-        super('Bishop', color, position);
+    getMoves(board) {
+        let directions = [[2, 1], [1, 2], [-2, 1], [1, -2], [2, -1], [-2, -1], [-1, -2], [-1, 2]];
+        
+        return this.getMovesFromDirection(board, directions);
     }
 }
 export class Queen extends Piece {
     constructor(color, position) {
         super('Queen', color, position);
     }
+    getMoves(board) {
+        let directions = [[1, 1], [1, -1], [-1, 1], [-1, -1],[0, 1], [0, -1], [1, 0], [-1, 0]];
+        
+        return this.getMovesFromDirection(board, directions);
+    }
+    
 }
 export class King extends Piece {
     constructor(color, position) {
         super('King', color, position);
+    }
+    getMoves(board) {
+        let directions = [[1, 1], [1, -1], [-1, 1], [-1, -1],[0, 1], [0, -1], [1, 0], [-1, 0]];
+        
+        return this.getMovesFromDirection(board, directions);
     }
 }
 export class Empty extends Piece {

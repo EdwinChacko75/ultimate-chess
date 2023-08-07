@@ -86,6 +86,7 @@
   pointer-events: none; 
   z-index: 1;
 }
+
 #myCanvas {
   position: absolute;
   height: calc(8 * var(--square));
@@ -97,4 +98,19 @@
   display: none;
 
 
+}
+.square.newhighlight::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  /* make transparent and add dots for cool effect */
+  background-color: rgba(255, 41, 41, 0.65); 
+  pointer-events: none; 
+  z-index: 1;
+}
+.square.dark.newhighlight:hover {
+  background-color: rgba(255, 41, 41, 0.65);
 }
