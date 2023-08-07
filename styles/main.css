@@ -10,12 +10,14 @@
   box-sizing: border-box;
 }
 /* Board rows */
+#board-container {
+  background-color: var(--light);
+  z-index: -5;
+  width: fit-content;
+  height: auto;
+}
 #board {
   list-style: none;
-    /* can remove to prevent leak if need */
-  /* background-color: var(--dark);
-  width: fit-content;
-  z-index: -1; */
 }
 #board li {
   display: inline-block;
@@ -69,9 +71,9 @@
 .pieces {
   cursor: grab;
 }
-.pieces:active {
+/* .pieces:active {
   cursor: grabbing;
-}
+} */
 /* Highlight */
 .square.highlighted::after {
   content: "";
@@ -83,4 +85,16 @@
   background-color: rgba(255, 41, 41, 0.65);
   pointer-events: none; 
   z-index: 1;
+}
+#myCanvas {
+  position: absolute;
+  height: calc(8 * var(--square));
+  width: calc(8 * var(--square));
+  z-index: 10000;
+  pointer-events: none;
+
+  /* JUST FOR NOW UNTIL I RETURN TO ARROW */
+  display: none;
+
+
 }

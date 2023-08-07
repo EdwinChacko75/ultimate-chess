@@ -5,18 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Single Player</title>
     <link rel="stylesheet" href="../styles/main.css">
+    
+    
+    <script type="module" src="../scripts/classes.js"></script>
+    <script type="module" src="../scripts/main.js"></script>
 
-    <script src="../scripts/main.js"></script>
 
 </head>
 <body>
-    <div>
-        <ul id="board"></ul>   
+    <div id="board-container">
+        <canvas id="myCanvas" >Your browser does not support the canvas tag.</canvas>
+
+        <ul id="board">
+
+        </ul>   
     </div>
-    
-    <button onclick="createChessBoard('black')">Black</button>
-    <button onclick="createChessBoard('white')">White</button>
-    
+    <button id="flipBoardButton">Flip Board</button>
+
+
 
 </body>
 </html>
