@@ -23,3 +23,23 @@ document.getElementById('flipBoardButton').addEventListener('click', () => {
     chessBoard.flipBoard('black');  
 });
 
+const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+const rows = ['8', '7', '6', '5', '4', '3', '2', '1'];
+
+let r = 4;
+let c = 3;
+let br = 4;
+let bc = 1;
+let whiteRook = new Rook('white', [r,c]);  // Example for white pawn at e4
+let blackPawn = new Pawn('black', [br,bc]); // Example for white pawn at e4
+
+chessBoard.board[r][c] = whiteRook;
+
+chessBoard.board[br][bc] = blackPawn;
+
+
+
+// let moves = whiteRook.getMoves(chessBoard.board);
+
+// console.log(chessBoard.board);
+// console.log(moves); 

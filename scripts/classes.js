@@ -6,17 +6,9 @@ function findIndex(arr, value) {
     }
     return -1;
 }
-function compareNodeListToArray(nodeList, array) {
-    if (nodeList.length !== array.length) {
-        return false;
-    }
-    for (let i = 0; i < nodeList.length; i++) {
-        if (nodeList[i] !== array[i]) {
-            return false;
-        }
-    }
-    return true;
-}
+
+let c = 1;
+
 export class ChessBoard {
     constructor() {
         this.color = "white";
@@ -63,6 +55,13 @@ export class ChessBoard {
     
     flipBoard(color) {
         color = color == 'black' ? 'black' : "white";
+
+        this.board.forEach(row => {
+            row.forEach(piece => {
+                piece.position = [7 - piece.position[0], 7 - piece.position[1]];
+            });
+        });
+        c = -c;
         this.createChessBoard(this.board, color);
     }
     
@@ -156,7 +155,7 @@ export class ChessBoard {
                 let row = findIndex(rows, indice)
                 let column = findIndex(columns, letter)
                 
-                moves = board[row][column].getMoves(board, [row, column]);
+                moves = board[row][column].getMoves(board);
 
                 squares.forEach(square => {
                     if (square.classList.contains('highlighted')) {
@@ -167,7 +166,6 @@ export class ChessBoard {
                     }
                     
                 });  
-                console.log(this, lastPiece, lastLastPiece);
                 if (lastPiece != this || lastPiece == null || lastLastPiece == this ) {
                     if (lastLastPiece == this) {
                         lastLastPiece = null;
@@ -197,14 +195,14 @@ export class ChessBoard {
         // Removing highlighting when left clicking new square or piece or right clicking
         squares.forEach(square => {
             square.addEventListener('click', function(event) {
+                lastPiece = null;
                     squares.forEach(square => {
                         square.classList.remove('highlighted');
                         square.classList.remove('newhighlight');
                 });
             });
         });      
-    ;
-
+        
     }
 
     static arr(ctx, fromx, fromy, tox, toy, arrowWidth, color){
@@ -360,7 +358,7 @@ export class Pawn extends Piece {
         let moves = [];
         let row = this.position[0];
         let col = this.position[1];
-        let direction = this.color == 'white' ? -1 : 1;
+        let direction = this.color == 'white' ? -c : c; // c is 1 or -1 declared at the top of the file
 
         let nextRow = row + direction;
         let doubleRow = row + 2 * direction;
@@ -442,8 +440,11 @@ export class Rook extends Piece {
     }
     getMoves(board) {
         let directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+        let moves = this.getMovesFromDirection(board, directions);
 
-        return this.getMovesFromDirection(board, directions);
+        //castling logic function call 
+
+        return moves;
     }
 
 }
@@ -484,8 +485,11 @@ export class King extends Piece {
     }
     getMoves(board) {
         let directions = [[1, 1], [1, -1], [-1, 1], [-1, -1],[0, 1], [0, -1], [1, 0], [-1, 0]];
+        let moves = this.getMovesFromDirection(board, directions);
+
+        //castling logic function call 
         
-        return this.getMovesFromDirection(board, directions);
+        return moves;
     }
 }
 export class Empty extends Piece {
