@@ -142,7 +142,6 @@ export class ChessBoard {
                 }
             });
         });
-
     }
 
     handleBoardClick(event) {
@@ -198,9 +197,8 @@ export class ChessBoard {
                 this.removeAllHighlights();
             }   
         }
-
-        
     }
+
     removeHighlights() {
         var highlighted = document.querySelectorAll('.highlighted');
         highlighted.forEach(highlight => {
@@ -210,104 +208,18 @@ export class ChessBoard {
             highlight.classList.remove('highlighted');
         });
     }
+
     removeNewHighlights() {
         var newHighlights = document.querySelectorAll('.newhighlight');
         newHighlights.forEach(newHighlight => {
             newHighlight.classList.remove('newhighlight');
         });
     }
+
     removeAllHighlights() {
         this.removeHighlights();
         this.removeNewHighlights();
     }
-
-    static arr(ctx, fromx, fromy, tox, toy, arrowWidth, color){
-        //variables to be used when creating the arrow
-
-        var headlen = 10;
-        var angle = Math.atan2(toy-fromy,tox-fromx);
-    
-        ctx.save();
-        ctx.strokeStyle = color;
-    
-        //starting path of the arrow from the start square to the end square
-        //and drawing the stroke
-        ctx.beginPath();
-        ctx.moveTo(fromx, fromy);
-        ctx.lineTo(tox, toy);
-        ctx.lineWidth = arrowWidth;
-        ctx.stroke();
-    
-        //starting a new path from the head of the arrow to one of the sides of
-        //the point
-        ctx.beginPath();
-        ctx.moveTo(tox, toy);
-        ctx.lineTo(tox-headlen*Math.cos(angle-Math.PI/7),
-                toy-headlen*Math.sin(angle-Math.PI/7));
-    
-        //path from the side point of the arrow, to the other side point
-        ctx.lineTo(tox-headlen*Math.cos(angle+Math.PI/7),
-                toy-headlen*Math.sin(angle+Math.PI/7));
-    
-        //path from the side point back to the tip of the arrow, and then
-        //again to the opposite side point
-        ctx.lineTo(tox, toy);
-        ctx.lineTo(tox-headlen*Math.cos(angle-Math.PI/7),
-                toy-headlen*Math.sin(angle-Math.PI/7));
-    
-        //draws the paths created above
-        ctx.stroke();
-        ctx.restore();
-    }
-    // }
-
-    // get the coords a to b
-    // arrowCoords() {
-
-    //     var squares = document.querySelectorAll('.square');
-    //     var pieces = document.querySelectorAll('.pieces');
-
-    //     let startSquare = null;
-
-    //     squares.forEach(square => {
-    //         square.addEventListener('mousedown', function(event) {
-    //             if (event.button === 2) {
-    //                 startSquare = event.target.id;
-    //                 res.push(startSquare);
-    //             }
-    //         });
-    //     });
-
-    //     pieces.forEach(piece => {
-    //         piece.addEventListener('mousedown', function(event) {
-    //             if (event.button === 2) {
-    //                 startSquare = event.target.parentNode.id;
-    //                 res.push(startSquare);
-    //             }
-    //         });
-    //     });
-
-    //     document.addEventListener('mouseup', function(event) {
-    //         if (event.button === 2) {
-    //             let endSquare = null;
-    //             if (event.target.classList.contains('square')) {
-    //                 endSquare = event.target.id;
-    //             } else if (event.target.classList.contains('pieces')) {
-    //                 endSquare = event.target.parentNode.id;
-    //             }
-    //             if (endSquare) {
-    //                 res.push(endSquare);
-    //                 res = res.filter(item => item !== "");
-    //                 if (res[0] != res[1] && res[0] && res[1]){
-    //                     drawArrow(res);
-    //                 }
-
-    //                 res = [];
-    //             }
-    //             startSquare = null;
-    //         }
-    //     });
-    // }
 }
 
 export class Piece {
