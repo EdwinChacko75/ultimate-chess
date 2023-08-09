@@ -1,12 +1,3 @@
-function findIndex(arr, value) {
-    for (let i = 0; i < arr.length; i++) {
-        if (arr[i] == value) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 let c = 1;
 
 export class ChessBoard {
@@ -51,6 +42,27 @@ export class ChessBoard {
 
     static pxToVw(px) {
         return (100 * px) / document.documentElement.clientWidth;
+    }
+    static indicesToCoords(position) {
+        const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        const rows = ['8', '7', '6', '5', '4', '3', '2', '1'];
+        return columns[position[1]] + rows[position[0]];
+    }
+    static coordsToIndices(coord) {
+        const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        const rows = ['8', '7', '6', '5', '4', '3', '2', '1'];
+        let res = [];
+        for (let i = 0; i < 8; i++) {
+            if (rows[i] == coord[1]) {
+                res.push(i);
+            }
+        }
+        for (let i = 0; i < 8; i++) {
+            if (columns[i] == coord[0]) {
+                res.push(i);
+            }
+        }
+        return res;
     }
     
     flipBoard(color) {
@@ -107,102 +119,106 @@ export class ChessBoard {
             document.getElementById("board").innerHTML += '</div>';
         }
 
-        // Enabling square highlighting
-        var squares = document.querySelectorAll('.square');
+        const boardElement = document.getElementById("board");
+        boardElement.addEventListener('click', this.handleBoardClick.bind(this));
 
+        // Square Highlighting
+        var squares = document.querySelectorAll('.square');
         squares.forEach(square => {
             square.addEventListener('contextmenu', function(event) {
                 event.preventDefault();
-                squares.forEach(square => {
-                    square.classList.remove('newhighlight');
-            });
-                if (event.target.classList.contains('highlighted')) {
-                    event.target.classList.remove('highlighted'); 
-                }
-                else {
-                    event.target.classList.add('highlighted');
-                }
-            });
-
-        });
-
-        var piecesClass = document.querySelectorAll('.pieces');
-
-        piecesClass.forEach(piece => {
-            piece.addEventListener('contextmenu', function(event) {
-                event.preventDefault();
-                var square = event.target.parentNode; 
                 if (square.classList.contains('highlighted')) {
                     square.classList.remove('highlighted');
                 }
                 else {
                     square.classList.add('highlighted');
+                    const isSelectedClassPresent = [...squares].some(square => square.classList.contains('selected'));
+                    if (isSelectedClassPresent) {
+                        squares.forEach(square => {
+                            square.classList.remove('newhighlight');
+                            square.classList.remove('selected');
+                        });
+                    }
                 }
             });
         });
 
-        // Highlighting moves when left clicking on a piece
-        let moves = [];
-        let lastPiece = null;
-        let lastLastPiece = null;
-        piecesClass.forEach(piece => {
-            piece.addEventListener('click', function(event) {
-                
+    }
 
-                event.stopPropagation();
-                let letter = piece.parentNode.id[0];
-                let indice = piece.parentNode.id[1];
-                let row = findIndex(rows, indice)
-                let column = findIndex(columns, letter)
-                
-                moves = board[row][column].getMoves(board);
+    handleBoardClick(event) {
+        event.stopPropagation();
+        let clickedElement = event.target;
+        var squares = document.querySelectorAll('.square');
+        if (clickedElement.tagName == 'LI' && clickedElement.classList.length == 2) {
+            this.removeAllHighlights();
+            squares.forEach(square => {
+                if (square.classList.contains('selected')) {
+                    square.classList.remove('selected');
+                }
+            });
+        }
+        if (clickedElement.classList.contains('newhighlight') || clickedElement.parentNode.classList.contains('newhighlight')) {
+            let start = ChessBoard.coordsToIndices(document.querySelector('.selected').id);
+            let end;
+            if (clickedElement.id) {
+                end = ChessBoard.coordsToIndices(clickedElement.id);
+            }
+            else {
+                end = ChessBoard.coordsToIndices(clickedElement.parentNode.id);
+            }
 
+            let moves = this.board[start[0]][start[1]].getMoves(this.board);
+            let move = moves.find(move => move.end[0] == end[0] && move.end[1] == end[1]);
+
+            move.makeMove(this.board);
+            this.removeAllHighlights();
+        }
+        else if (clickedElement.tagName === 'IMG' && !clickedElement.parentNode.classList.contains('newhighlight')) {
+            clickedElement = clickedElement.parentNode;
+            var squares = document.querySelectorAll('.square');
+
+            if (!clickedElement.classList.contains('selected')) {
                 squares.forEach(square => {
-                    if (square.classList.contains('highlighted')) {
-                        square.classList.remove('highlighted');
+                    if (square.classList.contains('selected')) {
+                        square.classList.remove('selected');
                     }
-                    else if (square.classList.contains('newhighlight')) {
-                        square.classList.remove('newhighlight');
-                    }
-                    
-                });  
-                if (lastPiece != this || lastPiece == null || lastLastPiece == this ) {
-                    if (lastLastPiece == this) {
-                        lastLastPiece = null;
-                        lastPiece = null;
-                    }
-                    moves.forEach(move => {
-
-                        let id = columns[move[1]] + rows[move[0]];
-                        let element = document.getElementById(id);
-                        
-                        if (element.classList.contains("newhighlight")) {
-                            element.classList.remove("newhighlight");
-                        }
-                        else {
-                            element.classList.add("newhighlight");
-                        }
-                    });
-                
-                }   
-            lastLastPiece = lastPiece;
-            lastPiece = this;
-
-            
-            });
-        });
-
-        // Removing highlighting when left clicking new square or piece or right clicking
-        squares.forEach(square => {
-            square.addEventListener('click', function(event) {
-                lastPiece = null;
-                    squares.forEach(square => {
-                        square.classList.remove('highlighted');
-                        square.classList.remove('newhighlight');
                 });
+                clickedElement.classList.add('selected');
+            
+                let position = ChessBoard.coordsToIndices(clickedElement.id);
+                let moves = this.board[position[0]][position[1]].getMoves(this.board);
+                this.removeAllHighlights();
+                moves.forEach(move => {
+                    let square = document.getElementById(ChessBoard.indicesToCoords(move.end));
+                    square.classList.add('newhighlight');
             });
-        });      
+            }
+            else if (clickedElement.classList.contains('selected')) {
+                clickedElement.classList.remove('selected');
+                this.removeAllHighlights();
+            }   
+        }
+
         
+    }
+    removeHighlights() {
+        var highlighted = document.querySelectorAll('.highlighted');
+        highlighted.forEach(highlight => {
+            if (highlight.classList.contains('highlighted')) {
+                highlight.classList.remove('highlighted');
+            }
+            highlight.classList.remove('highlighted');
+        });
+    }
+    removeNewHighlights() {
+        var newHighlights = document.querySelectorAll('.newhighlight');
+        newHighlights.forEach(newHighlight => {
+            newHighlight.classList.remove('newhighlight');
+        });
+    }
+    removeAllHighlights() {
+        this.removeHighlights();
+        this.removeNewHighlights();
     }
 
     static arr(ctx, fromx, fromy, tox, toy, arrowWidth, color){
@@ -300,7 +316,7 @@ export class Piece {
         this.color = color;
         this.position = position;
         this.firstMove = true;
-        this.iscaputured = false;
+        this.isCaputured = false;
         this.moves = [];
     }
     static createPiece(type, color, position) {
@@ -327,6 +343,8 @@ export class Piece {
         let moves = [];
         let row = this.position[0];
         let col = this.position[1];
+        let piece = board[row][col].type;
+        let start = [row, col];
 
         for(let dir of directions) {
             let i = 1;
@@ -337,10 +355,10 @@ export class Piece {
                 if (newRow < 0 || newRow >= 8 || newCol < 0 || newCol >= 8 || board[newRow][newCol].color === this.color) {
                     break;
                 } else if (board[newRow][newCol].type !== "Empty" && board[newRow][newCol].color !== this.color){
-                    moves.push([newRow, newCol]);
+                    moves.push(new Move(piece, start, [newRow, newCol]));
                     break;
                 }
-                moves.push([newRow, newCol]);
+                moves.push(new Move(piece, start, [newRow, newCol]));
                 i++;
             } 
             while (true && this.type !== "Knight" && this.type !== "King");
@@ -358,8 +376,11 @@ export class Pawn extends Piece {
         let moves = [];
         let row = this.position[0];
         let col = this.position[1];
+        let piece = board[row][col].type;
+        let start = [row, col];
         let direction = this.color == 'white' ? -c : c; // c is 1 or -1 declared at the top of the file
 
+        
         let nextRow = row + direction;
         let doubleRow = row + 2 * direction;
         let leftCol = col - 1;
@@ -372,19 +393,19 @@ export class Pawn extends Piece {
 
         
         if (forward && board[forward[0]][forward[1]].type == 'Empty'){
-            moves.push([nextRow, col]);
+            moves.push(new Move(piece, start,[nextRow, col]));
             
             if (doubleStep && board[doubleStep[0]][doubleStep[1]].type == 'Empty' && this.firstMove) {
-                moves.push([doubleRow, col]);
+                moves.push(new Move(piece, start, [doubleRow, col]));
             }
         }
             // might throw error if its empty since .color
     
         if (leftCapture && board[leftCapture[0]][leftCapture[1]].type == 'Pawn' && board[leftCapture[0]][leftCapture[1]].color != this.color) {
-            moves.push([nextRow, leftCol]);
+            moves.push(new Move(piece, start,[nextRow, leftCol]));
         }
         if (rightCapture && board[rightCapture[0]][rightCapture[1]].type == 'Pawn' && board[rightCapture[0]][rightCapture[1]].color != this.color) {
-            moves.push([nextRow, rightCol]);
+            moves.push(new Move(piece, start,[nextRow, rightCol]));
         }
             
         let enPassantRow = this.color == 'black' ? 4 : 3;
@@ -395,13 +416,14 @@ export class Pawn extends Piece {
             let rightEnPassant = board[enPassantRow][rightCol];
 
             if (leftEnPassant && leftEnPassant.type == 'Pawn' && leftEnPassant.color !== this.color && leftEnPassant.secondMove) {
-                moves.push([enPassantMoveRow, leftCol]);
+                moves.push(new Move(piece, start, [enPassantMoveRow, leftCol]));
             }
 
             if (rightEnPassant && rightEnPassant.type == 'Pawn' && rightEnPassant.color !== this.color && rightEnPassant.secondMove) {
-                moves.push([enPassantMoveRow, rightCol]);
+                moves.push(new Move(piece, start, [enPassantMoveRow, rightCol]));
             }
         }
+       
         return moves;
     }
 
@@ -430,7 +452,7 @@ export class Pawn extends Piece {
                 break;
         }
         newPiece.firstMove = false;
-        this.iscaptured = true;
+        this.isCaptured = true;
         return newPiece;
     }
 }
@@ -488,12 +510,58 @@ export class King extends Piece {
         let moves = this.getMovesFromDirection(board, directions);
 
         //castling logic function call 
-        
+
         return moves;
     }
 }
 export class Empty extends Piece {
     constructor(position) {
         super('Empty', null, position);
+    }
+}
+
+export class Move {
+    constructor(piece, start, end) {
+        this.piece = piece;
+        this.start = start;
+        this.end = end;
+    }
+    makeMove(board) {
+        
+        let start = this.start;
+        let end = this.end;
+        let piece = board[start[0]][start[1]];
+        
+        if (board[end[0]][end[1]].type !== "Empty") {
+            board[end[0]][end[1]].isCaptured = true;
+        }
+        
+        board[start[0]][start[1]] = new Empty(start);
+
+        board[end[0]][end[1]] = piece;
+        if (piece.firstMove) {
+            piece.firstMove = false;
+        }
+            piece.position = end;
+        
+            // this is shortcut a bit and may lead to issues. 
+            // a white pawn moving backward to the first rank will be promoted
+            // this should not be an issue as such movement is not permitted
+        if (piece.type === "Pawn" && (end[0] === 7 ) || end[0] === 0) {
+            board[end[0]][end[1]].isCaptured = true;
+            board[end[0]][end[1]] = piece.promote("Queen");
+        }
+
+        let element = document.getElementById(ChessBoard.indicesToCoords(start)).querySelector('img')
+        if (element) {
+            element.remove();
+        }
+        element = document.getElementById(ChessBoard.indicesToCoords(end)).querySelector('img')
+        if (element){
+            element.remove();
+        }
+        document.getElementById(ChessBoard.indicesToCoords(end)).innerHTML += '<img class="pieces '+ board[end[0]][end[1]].type + '" src="../img/chesspieces/wikipedia/'+ board[end[0]][end[1]].color + board[end[0]][end[1]].type +'.png">';
+
+        
     }
 }

@@ -64,7 +64,7 @@
 .pieces {
   width:inherit;
   height: auto;
-  z-index: 2;
+  z-index: 3;
   user-select: none;
   position: relative;
 }
@@ -75,6 +75,9 @@
   cursor: grabbing;
 } */
 /* Highlight */
+.square {
+  z-index: 1;
+}
 .square.highlighted::after {
   content: "";
   position: absolute;
@@ -109,8 +112,11 @@
   /* make transparent and add dots for cool effect */
   background-color: rgba(255, 41, 41, 0.65); 
   pointer-events: none; 
-  z-index: 1;
+  z-index: 2;
 }
 .square.dark.newhighlight:hover {
+  background-color: rgba(255, 41, 41, 0.65);
+}
+.square.light.newhighlight:hover {
   background-color: rgba(255, 41, 41, 0.65);
 }
