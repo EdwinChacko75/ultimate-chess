@@ -18,8 +18,17 @@ document.addEventListener("DOMContentLoaded", () => {
     // chessBoard.board[r][c] = whiteRook;
 
     // chessBoard.board[br][bc] = blackPawn;
-    // let move = new Move(chessBoard.board[6][0], chessBoard.board[6][0].position, [0,1]);
-    // move.makeMove(chessBoard.board, chessBoard.board[br][bc], [6,0], [0,1]);
+    let move = new Move(chessBoard.board[6][0], chessBoard.board[6][0].position, [0,1]);
+    move.makeMove(chessBoard.board);
+    // console.log(chessBoard.board[0][1], chessBoard.board[0][1].position);
+    // let move2 = new Move(chessBoard.board[7][0], chessBoard.board[7][0].position, [0,2]);
+    // move2.makeMove(chessBoard.board);
+    // console.log(chessBoard.board);
+    // chessBoard.board.forEach(row => {
+    //     row.reverse();
+    // });
+    // chessBoard.board.reverse();
+    // console.log(chessBoard.board);
 
 });
 
@@ -29,11 +38,11 @@ document.addEventListener("DOMContentLoaded", (event)=> {
     
     window.onload = function() {
     
-        ChessBoard.arr(ctx, 10, 10, 100, 100, 10, 'red');
-        ChessBoard.arr(ctx, 100, 10, 140, 140, 3, 'black');
+        // ChessBoard.arr(ctx, 10, 10, 100, 100, 10, 'red');
+        // ChessBoard.arr(ctx, 100, 10, 140, 140, 3, 'black');
     }
 });
 
 document.getElementById('flipBoardButton').addEventListener('click', () => {
-    chessBoard.flipBoard('black');  
+    chessBoard.flipBoard(chessBoard.board);  
 });

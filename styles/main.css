@@ -33,6 +33,7 @@
   position: relative;
   font-size: calc(var(--square) / 4.3);
   z-index: 1;
+  user-select: none;
 }
 .light {
   background-color: var(--light);
@@ -100,7 +101,6 @@
   /* JUST FOR NOW UNTIL I RETURN TO ARROW */
   display: none;
 
-
 }
 .square.newhighlight::after {
   content: "";
@@ -119,4 +119,34 @@
 }
 .square.light.newhighlight:hover {
   background-color: rgba(255, 41, 41, 0.65);
+}
+.lastmove::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(219, 223, 141, 0.7); 
+  pointer-events: none; 
+  z-index: 1s ;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: calc(8 * var(--square));
+  height: calc(8 * var(--square));
+  background-color: rgba(0,0,0,0.6);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.selection {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
 }

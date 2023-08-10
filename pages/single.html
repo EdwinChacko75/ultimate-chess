@@ -17,10 +17,20 @@
         <canvas id="myCanvas" >Your browser does not support the canvas tag.</canvas>
 
         <ul id="board">
+            <button id="flipBoardButton">Flip Board</button>
 
-        </ul>   
+        </ul>  
+        <div id="promotion-modal" class="modal">
+            <div class="selection">
+                <img id="Queen" alt="Queen" data-piece="Queen">
+                <img id="Rook" alt="Rook" data-piece="Rook" >
+                <img id="Bishop" alt="Bishop" data-piece="Bishop" >
+                <img id="Knight" alt="Knight" data-piece="Knight" >
+            </div>
+            <button onclick="closeModal()">Cancel</button>
+        </div>
+        
     </div>
-    <button id="flipBoardButton">Flip Board</button>
 
 
 
