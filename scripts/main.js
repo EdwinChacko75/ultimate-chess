@@ -20,6 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // chessBoard.board[br][bc] = blackPawn;
     // let move = new Move(chessBoard.board[6][0], chessBoard.board[6][0].position, [0,1]);
     // move.makeMove(chessBoard.board);
+    
     // console.log(chessBoard.board[0][1], chessBoard.board[0][1].position);
     // let move2 = new Move(chessBoard.board[7][0], chessBoard.board[7][0].position, [0,2]);
     // move2.makeMove(chessBoard.board);
