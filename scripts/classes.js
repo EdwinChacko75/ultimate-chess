@@ -1,255 +1,5 @@
 let c = 1;
 
-export class ChessBoard {
-    constructor() {
-        this.color = "white";
-        this.opponent = 'black';
-        this.board = [];
-        this.moves = [];
-        let pieces = ['Rook', 'Knight', 'Bishop', 'Queen', 'King', 'Bishop', 'Knight', 'Rook'];
-
-        for (let i = 0; i < 8; i++) {
-            let row = [];
-            if (i == 0 || i == 7){
-                let color = i == 7 ? this.color : this.opponent;
-                let j = 0;
-                pieces.forEach(piece => {
-                    row.push(Piece.createPiece(piece, color, [i,j]));
-                    j++;
-                })
-            }
-            else if (i == 1 || i == 6){
-                let color = i == 6 ? this.color : this.opponent;
-                for (let j = 0; j < 8; j++) { 
-                    row.push(Piece.createPiece("Pawn", color, [i, j]));
-                }
-            }
-            else {
-                for (let j = 0; j < 8; j++) { 
-                    row.push(Piece.createPiece('Empty', this.color, [i,j]));
-                }
-            }
-            
-            this.board.push(row);
-        }
-        if (this.color == 'black') {
-            this.board.reverse();
-        }
-    }
-
-    static removeBoard() {
-        document.getElementById("board").innerHTML = "";
-    }
-
-    static pxToVw(px) {
-        return (100 * px) / document.documentElement.clientWidth;
-    }
-    static indicesToCoords(position) {
-        const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-        const rows = ['8', '7', '6', '5', '4', '3', '2', '1'];
-        return columns[position[1]] + rows[position[0]];
-    }
-    static coordsToIndices(coord) {
-        const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-        const rows = ['8', '7', '6', '5', '4', '3', '2', '1'];
-        let res = [];
-        for (let i = 0; i < 8; i++) {
-            if (rows[i] == coord[1]) {
-                res.push(i);
-            }
-        }
-        for (let i = 0; i < 8; i++) {
-            if (columns[i] == coord[0]) {
-                res.push(i);
-            }
-        }
-        return res;
-    }
-    
-    flipBoard(color) {
-        this.color = this.color == 'black' ? 'white' : "black";
-
-        this.board.forEach(row => {
-            row.forEach(piece => {
-                piece.position = [7 - piece.position[0], 7 - piece.position[1]];
-            });
-        });
-        this.board.forEach(row => {
-            row.reverse(); 
-        });
-        this.board.reverse();
-
-        let elements = document.querySelectorAll('.lastmove');
-        c = -c; 
-        this.createChessBoard(this.board, this.color);
-        console.log(this.board);
-        console.log(this.color)
-
-
-        const boardElement = document.getElementById("board");
-        boardElement.removeEventListener('click', ChessBoard.handleBoardClick.bind(this));
-        boardElement.addEventListener('click', ChessBoard.handleBoardClick.bind(this));
-        
-    }
-    
-    createChessBoard(board, color) {
-        ChessBoard.removeBoard();
-
-        const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-        const rows = ['8', '7', '6', '5', '4', '3', '2', '1'];
-
-        if (color == "black") {
-            columns.reverse();
-            rows.reverse();
-        }
-        
-        //Create the board
-        for( let i = 0; i < 8; i++) {
-            document.getElementById("board").innerHTML += '<div>';
-
-            for (let j = 0; j < 8; j++) {
-                var squareColor = (i + j) % 2 == 0 ? "light" : "dark" ;
-                let squareHTML = '<li id="' + columns[j] + rows[i]  + '" class="square '+ squareColor +'">';
-
-                if (board[i][j].type !== "Empty") { 
-                    squareHTML += '<img class="pieces '+ board[i][j].type + '" src="../img/chesspieces/wikipedia/'+ board[i][j].color + board[i][j].type +'.png">';
-                }
-                if (i == 7 && j == 0){
-                    squareHTML += '<p class="row ' + squareColor +'">' + rows[i] + '<p class="column">' + columns[j] + '</p>'
-                }
-                else if (i == 7){
-                    squareHTML += '<p class="column"' + squareColor +'">' + columns[j] + '</p'
-                }
-                else if (j == 0){
-                    squareHTML += '<p class="row"' + squareColor +'">' + rows[i] + '</p>'
-                }
-
-                squareHTML += '</li>';          
-                document.getElementById("board").innerHTML += squareHTML;
-            }
-            document.getElementById("board").innerHTML += '</div>';
-        }
-
-        const boardElement = document.getElementById("board");
-        boardElement.removeEventListener('click', ChessBoard.handleBoardClick.bind(this));
-        boardElement.addEventListener('click', ChessBoard.handleBoardClick.bind(this));
-        
-        // Square Highlighting
-        var squares = document.querySelectorAll('.square');
-        squares.forEach(square => {
-            square.addEventListener('contextmenu', function(event) {
-                event.preventDefault();
-                if (square.classList.contains('highlighted')) {
-                    square.classList.remove('highlighted');
-                }
-                else {
-                    square.classList.add('highlighted');
-                    const isSelectedClassPresent = [...squares].some(square => square.classList.contains('selected'));
-                    if (isSelectedClassPresent) {
-                        squares.forEach(square => {
-                            square.classList.remove('newhighlight');
-                            square.classList.remove('selected');
-                        });
-                    }
-                }
-            });
-        });
-    }
-
-    static handleBoardClick(event) {
-        event.stopPropagation();
-        let clickedElement = event.target;
-        var squares = document.querySelectorAll('.square');
-        squares.forEach(square => {
-            if (square.classList.contains('highlighted')) {
-                square.classList.remove('highlighted');
-            }
-        });
-        if (clickedElement.tagName == 'LI' && clickedElement.classList.length == 2) {
-            this.removeAllHighlights();
-            squares.forEach(square => {
-                if (square.classList.contains('selected')) {
-                    square.classList.remove('selected');
-                }
-            });
-        }
-        if (clickedElement.classList.contains('newhighlight') || clickedElement.parentNode.classList.contains('newhighlight')) {
-            let start = ChessBoard.coordsToIndices(document.querySelector('.selected').id);
-            let end;
-            if (clickedElement.id) {
-                end = ChessBoard.coordsToIndices(clickedElement.id);
-            }
-            else {
-                end = ChessBoard.coordsToIndices(clickedElement.parentNode.id);
-            }
-
-            let moves = this.board[start[0]][start[1]].getMoves(this.board);
-            let move = moves.find(move => move.end[0] == end[0] && move.end[1] == end[1]);
-
-            if ((end[0] == 0 || end[0]) == 7 && this.board[start[0]][start[1]].type == 'Pawn') {
-                document.getElementById('promotion-modal').style.display = 'flex';
-                document.getElementById('promotion-modal').addEventListener('click', (e) => {
-                    board[end[0]][end[1]].isCaptured = true;
-                    board[end[0]][end[1]] = piece.promote(e.target.id);
-                });
-            } 
-            
-            move.makeMove(this.board);
-
-            
-            this.moves.push(move);
-            this.removeAllHighlights();
-        }
-        else if (clickedElement.tagName === 'IMG' && !clickedElement.parentNode.classList.contains('newhighlight')) {
-            clickedElement = clickedElement.parentNode;
-            var squares = document.querySelectorAll('.square');
-            console.log(clickedElement);
-            if (!clickedElement.classList.contains('selected')) {
-                squares.forEach(square => {
-                    if (square.classList.contains('selected')) {
-                        square.classList.remove('selected');
-                    }
-                });
-                clickedElement.classList.add('selected');
-            
-                let position = ChessBoard.coordsToIndices(clickedElement.id);
-                let moves = this.board[position[0]][position[1]].getMoves(this.board);
-                this.removeAllHighlights();
-                moves.forEach(move => {
-                    let square = document.getElementById(ChessBoard.indicesToCoords(move.end));
-                    square.classList.add('newhighlight');
-            });
-            }
-            else if (clickedElement.classList.contains('selected')) {
-                clickedElement.classList.remove('selected');
-                this.removeAllHighlights();
-            }   
-        }
-    }
-
-    removeHighlights() {
-        var highlighted = document.querySelectorAll('.highlighted');
-        highlighted.forEach(highlight => {
-            if (highlight.classList.contains('highlighted')) {
-                highlight.classList.remove('highlighted');
-            }
-            highlight.classList.remove('highlighted');
-        });
-    }
-
-    removeNewHighlights() {
-        var newHighlights = document.querySelectorAll('.newhighlight');
-        newHighlights.forEach(newHighlight => {
-            newHighlight.classList.remove('newhighlight');
-        });
-    }
-
-    removeAllHighlights() {
-        this.removeHighlights();
-        this.removeNewHighlights();
-    }
-}
-
 export class Piece {
     constructor(type, color, position) {
         this.type = type;
@@ -362,7 +112,7 @@ export class Pawn extends Piece {
             }
         }
        
-        return moves;
+        this.moves =  moves;
     }
 
     promote(promoted) {
@@ -401,7 +151,7 @@ export class Rook extends Piece {
     getMoves(board) {
         let directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
 
-        return this.getMovesFromDirection(board, directions);
+        this.moves = this.getMovesFromDirection(board, directions);
     }
 
 }
@@ -412,7 +162,7 @@ export class Bishop extends Piece {
     getMoves(board) {
         let directions = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
         
-        return this.getMovesFromDirection(board, directions);
+        this.moves = this.getMovesFromDirection(board, directions);
     }
 }
 export class Knight extends Piece {
@@ -422,7 +172,7 @@ export class Knight extends Piece {
     getMoves(board) {
         let directions = [[2, 1], [1, 2], [-2, 1], [1, -2], [2, -1], [-2, -1], [-1, -2], [-1, 2]];
         
-        return this.getMovesFromDirection(board, directions);
+        this.moves = this.getMovesFromDirection(board, directions);
     }
 }
 export class Queen extends Piece {
@@ -432,16 +182,15 @@ export class Queen extends Piece {
     getMoves(board) {
         let directions = [[1, 1], [1, -1], [-1, 1], [-1, -1],[0, 1], [0, -1], [1, 0], [-1, 0]];
         
-        return this.getMovesFromDirection(board, directions);
+        this.moves = this.getMovesFromDirection(board, directions);
     }
     
 }
 export class King extends Piece {
     constructor(color, position) {
         super('King', color, position);
-    }
-    
-    getMoves(board) {
+    }  
+    getMoves(board, unSafe) {
         let directions = [[1, 1], [1, -1], [-1, 1], [-1, -1],[0, 1], [0, -1], [1, 0], [-1, 0]];
         let moves = this.getMovesFromDirection(board, directions);
 
@@ -449,30 +198,80 @@ export class King extends Piece {
         let col = this.position[1];
 
         if (this.firstMove) {
+            let isSafe = true;
             let i = 1;
             while (board[row][col + i].type === "Empty" && col + i < 7) {
+                if (!this.isSafe([row, col + i], board)) {
+                    isSafe = false;
+                    break;
+                }
                 i++;
+                console.log(board[row][col + i].type === "Empty" , col + i < 7,i)
+
             }
-            if (board[row][col + i].type === "Rook" && board[row][col + i].color === this.color && board[row][col + i].firstMove) {
-                moves.push(new Move(this, [row,col], [row, col + i - Math.floor(i/2)], new Move(board[row][col + i], [row, col + i], [row, col + 1], false)));
+            if (this.color === 'white') {
+                console.log(board[row][col + i])
+            }
+            if (isSafe && board[row][col + i].type === "Rook" && board[row][col + i].color === this.color && board[row][col + i].firstMove) {
+                // check that intermediate squares are safe
+                console.log('short castle')
+                moves.push(new Move(this.type, [row,col], [row, col + i - Math.floor(i/2)], new Move(board[row][col + i], [row, col + i], [row, col + 1], false)));
             }
             let j = 1;
+            isSafe = true;
             while (board[row][col - j].type === "Empty" && col - j > 0) {
+                if (!this.isSafe([row, col - j], board)) {
+                    isSafe = false;
+                    break;
+                }
                 j++;
-            }
+            }        
+           
             if (board[row][col - j].type === "Rook" && board[row][col - j].color === this.color && board[row][col - j].firstMove) {
-                moves.push(new Move(this, [row,col], [row, col - j + Math.floor(j/2)], new Move(board[row][col - j], [row, col - j], [row, col - 1], false)));
+                //check that intermediate squares are safe
+                console.log('long castle')
+
+                moves.push(new Move(this.type, [row,col], [row, col - j + Math.floor(j/2)], new Move(board[row][col - j], [row, col - j], [row, col - 1], false)));
             }
         }
-        return moves;
+        if (!unSafe) {
+            const safeMoves = moves.filter(move => {
+                return this.isSafe(move, board);
+            });
+            return safeMoves;
+        }
+        this.moves = moves;
+    }
+    isSafe(position, board) {
+        let opponentMoves = this.color === 'white' ? board.blackTargetedSquares : board.whiteTargetedSquares;
+        if (opponentMoves === undefined) {
+            return true;
+        }
+        opponentMoves.forEach(move => {
+            if (move.end[0] === position[0] && move.end[1] === position[1]) {
+                return false;
+            }
+        });
+        return true;
     }
 
+    // getSafeMoves(board) {
+    //     const moves = this.getMoves(board);
+    //     const safeMoves = moves.filter(move => {
+    //     // Use cached targeted squares to determine if this move is safe.
+    //         return this.isSafe(move, board);
+    //     });
+    //     this.moves = safeMoves;
+    // }
 
 }
 export class Empty extends Piece {
     constructor(position) {
         super('Empty', null, position);
         this.firstMove = false;
+    }
+    getMoves(board) {
+        return;
     }
 }
 
@@ -483,29 +282,360 @@ export class Move {
         this.end = end;
         this.exception = exception;
     }
+}
+
+export class ChessBoard {
+    constructor() {
+        this.color = "white";
+        this.opponent = 'black';
+        this.board = [];
+        this.whiteTargetedSquares = [];
+        this.blackTargetedSquares = [];
+        let pieces = ['Rook', 'Knight', 'Bishop', 'Queen', 'King', 'Bishop', 'Knight', 'Rook'];
+
+        for (let i = 0; i < 8; i++) {
+            let row = [];
+            if (i == 0 || i == 7){
+                let color = i == 7 ? this.color : this.opponent;
+                let j = 0;
+                pieces.forEach(piece => {
+                    row.push(Piece.createPiece(piece, color, [i,j]));
+                    j++;
+                })
+            }
+            else if (i == 1 || i == 6){
+                let color = i == 6 ? this.color : this.opponent;
+                for (let j = 0; j < 8; j++) { 
+                    row.push(Piece.createPiece("Pawn", color, [i, j]));
+                }
+            }
+            else {
+                for (let j = 0; j < 8; j++) { 
+                    row.push(Piece.createPiece('Empty', this.color, [i,j]));
+                }
+            }
+            
+            this.board.push(row);
+        }
+        if (this.color == 'black') {
+            this.board.reverse();
+        }
+
+        this.board.forEach(row => {
+            row.forEach(piece => {
+                if (piece.type !== "Empty") {
+                    piece.getMoves(this.board);
+                }
+                if (piece.color === "white") {
+                    this.whiteTargetedSquares = this.whiteTargetedSquares.concat(piece.moves);
+                }
+                else if (piece.color === "black"){
+                    this.blackTargetedSquares = this.blackTargetedSquares.concat(piece.moves);
+                }
+            });
+        });
+    }
+    clickEvent(event) {
+        event.stopPropagation();
+        let clickedElement = event.target;
+        let board = this.board;
+        var squares = document.querySelectorAll('.square');
+        squares.forEach(square => {
+            if (square.classList.contains('highlighted')) {
+                square.classList.remove('highlighted');
+            }
+        });
+        if (clickedElement.tagName == 'LI' && clickedElement.classList.length == 2) {
+            this.removeAllHighlights();
+            squares.forEach(square => {
+                if (square.classList.contains('selected')) {
+                    square.classList.remove('selected');
+                }
+            });
+        }
+        else if (clickedElement.tagName === 'IMG' && !clickedElement.parentNode.classList.contains('newhighlight')) {
+            clickedElement = clickedElement.parentNode;
+            var squares = document.querySelectorAll('.square');
+            
+            if (!clickedElement.classList.contains('selected')) {
+                squares.forEach(square => {
+                    if (square.classList.contains('selected')) {
+                        square.classList.remove('selected');
+                    }
+                });
+                clickedElement.classList.add('selected');
+            
+                let position = ChessBoard.coordsToIndices(clickedElement.id);
+                let moves = board[position[0]][position[1]].moves
+                this.removeAllHighlights();
+                moves.forEach(move => {
+                    let square = document.getElementById(ChessBoard.indicesToCoords(move.end));
+                    square.classList.add('newhighlight');
+            });
+            }
+            else if (clickedElement.classList.contains('selected')) {
+                clickedElement.classList.remove('selected');
+                this.removeAllHighlights();
+            }   
+        }
+    }
+    updateTargetedSquares() {
+        this.whiteTargetedSquares = [];
+        this.blackTargetedSquares = [];
+    
+        for (let row of this.board) { 
+            for (let piece of row) {
+                if (piece.name === "Empty") continue;
+                
+                piece.getMoves(this.board, piece.type === "King"); 
+                if (piece.moves === [] || piece.moves === undefined) continue;
+                for (let move of piece.moves) {
+                    if (piece.color === "white") {
+                        this.whiteTargetedSquares.push(move);
+                    } 
+                    else {
+                    this.blackTargetedSquares.push(move);
+                    }
+                }
+            }
+        }
+    }
+
+    static removeBoard() {
+        document.getElementById("board").innerHTML = "";
+    }
+
+    static indicesToCoords(position) {
+        const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        const rows = ['8', '7', '6', '5', '4', '3', '2', '1'];
+        return columns[position[1]] + rows[position[0]];
+    }
+    static coordsToIndices(coord) {
+        const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        const rows = ['8', '7', '6', '5', '4', '3', '2', '1'];
+        let res = [];
+        for (let i = 0; i < 8; i++) {
+            if (rows[i] == coord[1]) {
+                res.push(i);
+            }
+        }
+        for (let i = 0; i < 8; i++) {
+            if (columns[i] == coord[0]) {
+                res.push(i);
+            }
+        }
+        return res;
+    }
+    
+    removeHighlights() {
+        var highlighted = document.querySelectorAll('.highlighted');
+        highlighted.forEach(highlight => {
+            if (highlight.classList.contains('highlighted')) {
+                highlight.classList.remove('highlighted');
+            }
+            highlight.classList.remove('highlighted');
+        });
+    }
+
+    removeNewHighlights() {
+        var newHighlights = document.querySelectorAll('.newhighlight');
+        newHighlights.forEach(newHighlight => {
+            newHighlight.classList.remove('newhighlight');
+        });
+    }
+
+    removeAllHighlights() {
+        this.removeHighlights();
+        this.removeNewHighlights();
+    }
+    flipBoard(color) {
+        this.color = this.color == 'black' ? 'white' : "black";
+
+        this.board.forEach(row => {
+            row.forEach(piece => {
+                piece.position = [7 - piece.position[0], 7 - piece.position[1]];
+            });
+        });
+        this.board.forEach(row => {
+            row.reverse(); 
+        });
+        this.board.reverse();
+
+        let elements = document.querySelectorAll('.lastmove');
+        c = -c; 
+        this.createChessBoard(this.board, this.color);
+        console.log(this.board);
+        console.log(this.color)
+
+
+        const boardElement = document.getElementById("board");
+        boardElement.removeEventListener('click', ChessBoard.handleBoardClick.bind(this));
+        boardElement.addEventListener('click', ChessBoard.handleBoardClick.bind(this));
+        
+    }
+    
+    createChessBoard(board, color) {
+        ChessBoard.removeBoard();
+
+        const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        const rows = ['8', '7', '6', '5', '4', '3', '2', '1'];
+
+        if (color == "black") {
+            columns.reverse();
+            rows.reverse();
+        }
+        
+        //Create the board
+        for( let i = 0; i < 8; i++) {
+            document.getElementById("board").innerHTML += '<div>';
+
+            for (let j = 0; j < 8; j++) {
+                var squareColor = (i + j) % 2 == 0 ? "light" : "dark" ;
+                let squareHTML = '<li id="' + columns[j] + rows[i]  + '" class="square '+ squareColor +'">';
+
+                if (board[i][j].type !== "Empty") { 
+                    squareHTML += '<img class="pieces '+ board[i][j].type + '" src="../img/chesspieces/wikipedia/'+ board[i][j].color + board[i][j].type +'.png">';
+                }
+                if (i == 7 && j == 0){
+                    squareHTML += '<p class="row ' + squareColor +'">' + rows[i] + '<p class="column">' + columns[j] + '</p>'
+                }
+                else if (i == 7){
+                    squareHTML += '<p class="column"' + squareColor +'">' + columns[j] + '</p'
+                }
+                else if (j == 0){
+                    squareHTML += '<p class="row"' + squareColor +'">' + rows[i] + '</p>'
+                }
+
+                squareHTML += '</li>';          
+                document.getElementById("board").innerHTML += squareHTML;
+            }
+            document.getElementById("board").innerHTML += '</div>';
+        }
+        
+        // Square Highlighting
+        var squares = document.querySelectorAll('.square');
+        squares.forEach(square => {
+            square.addEventListener('contextmenu', function(event) {
+                event.preventDefault();
+                if (square.classList.contains('highlighted')) {
+                    square.classList.remove('highlighted');
+                }
+                else {
+                    square.classList.add('highlighted');
+                    const isSelectedClassPresent = [...squares].some(square => square.classList.contains('selected'));
+                    if (isSelectedClassPresent) {
+                        squares.forEach(square => {
+                            square.classList.remove('newhighlight');
+                            square.classList.remove('selected');
+                        });
+                    }
+                }
+            });
+        });
+        const boardElement = document.getElementById("board");
+        boardElement.removeEventListener('click', this.clickEvent.bind(this));
+        boardElement.addEventListener('click', this.clickEvent.bind(this));
+
+    }
+}
+
+
+
+export class Player {
+    constructor(name, color) {
+        this.name = name;
+        this.color = color;
+        this.moves = [];
+    }
+    decideMove(event) {
+        event.stopPropagation();
+        let clickedElement = event.target;
+        let chessBoard = this.board;
+        let board = this.board.board;
+        
+        if (clickedElement.classList.contains('newhighlight') || clickedElement.parentNode.classList.contains('newhighlight')) {
+            let start = ChessBoard.coordsToIndices(document.querySelector('.selected').id);
+            let end = clickedElement.id ? ChessBoard.coordsToIndices(clickedElement.id) : ChessBoard.coordsToIndices(clickedElement.parentNode.id);
+            let moves = this.board.board[start[0]][start[1]].moves;
+            let move = moves.find(move => move.end[0] == end[0] && move.end[1] == end[1]);
+
+            if ((end[0] == 0 || end[0] == 7) && board[start[0]][start[1]].type === 'Pawn') {
+                document.getElementById('promotion-modal').style.display = 'flex';
+                document.getElementById('promotion-modal').addEventListener('click', (e) => {
+                    board[end[0]][end[1]].isCaptured = true;
+                    board[end[0]][end[1]] = piece.promote(e.target.id);
+                });
+            } 
+
+            this.makeMove(move);
+
+            if (move.exception) {
+                if (move.piece === "Pawn") {
+                    board[move.exception[0]][move.exception[1]].isCaptured = true;
+                    let element = document.getElementById(ChessBoard.indicesToCoords(move.exception)).querySelector('img')
+                    if(element){
+                        element.remove();
+                    };
+                }
+                else if (move.piece === "King") {
+                    this.makeMove(move.exception);
+                }
+            }
+            chessBoard.updateTargetedSquares();
+            
+            this.moves.push(move);
+            chessBoard.removeAllHighlights();
+        }
+        
+    }    
+}
+export class Game {
+    constructor(whitePlayer, blackPlayer) {
+        this.whitePlayer = whitePlayer;
+        this.blackPlayer = blackPlayer;
+        this.board = new ChessBoard();
+        this.turn = "white";
+        this.moves = [];
+        this.isOver = false;
+        
+    }
+    gameLoop(turn) {
+        this.board.createChessBoard(this.board.board, this.board.color);
+        const boardElement = document.getElementById("board");
+        boardElement.addEventListener('click', turn.decideMove.bind(this));
+
+
+        let nextTurn = turn.color === "white" ? this.blackPlayer : this.whitePlayer;
+        this.turn = nextTurn.color;
+        // this.gameLoop(nextTurn);
+
+
+        // this.gameLoop(this.turn);
+    }
     closeModal() {
         document.getElementById('promotion-modal').style.display = 'none';
     }
     
     openModal() {
         document.getElementById('promotion-modal').style.display = 'flex';
-    }
-    makeMove(board) {
-        let start = this.start;
-        let end = this.end;
+    }   
+    makeMove(move) {
+        let start = move.start;
+        let end = move.end;
+        let board = this.board.board;
         let piece = board[start[0]][start[1]];
-        if (this.exception) {
-            if (piece.type === "Pawn") {
-                board[this.exception[0]][this.exception[1]].isCaptured = true;
-                let element = document.getElementById(ChessBoard.indicesToCoords(this.exception)).querySelector('img')
-                if(element){
-                    element.remove();
-                };
-            }
-            else if (piece.type === "King") {
-                this.exception.makeMove(board);
-            }
-        }
+        // if (move.exception) {
+        //     if (piece.type === "Pawn") {
+        //         board[move.exception[0]][move.exception[1]].isCaptured = true;
+        //         let element = document.getElementById(ChessBoard.indicesToCoords(move.exception)).querySelector('img')
+        //         if(element){
+        //             element.remove();
+        //         };
+        //     }
+        //     else if (piece.type === "King") {
+        //         this.makeMove(board);
+        //     }
+        // }
         if (piece.firstMove) {
             piece.firstMove = false;
             if (piece.type === "Pawn") {
@@ -539,7 +669,6 @@ export class Move {
                 board[end[0]][end[1]].isCaptured = true;
                 board[end[0]][end[1]] = piece.promote("Queen");//e.target.id);
             // });
-    
         }
 
         let element = document.getElementById(ChessBoard.indicesToCoords(start)).querySelector('img')
@@ -563,6 +692,9 @@ export class Move {
 
         document.getElementById(ChessBoard.indicesToCoords(end)).classList.add('lastmove');
         document.getElementById(ChessBoard.indicesToCoords(start)).classList.add('lastmove');
-    }
 
+        this.board.updateTargetedSquares();
+        
+    }
+    
 }
