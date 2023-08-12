@@ -33,7 +33,10 @@ document.addEventListener("DOMContentLoaded", () => {
     let white = new Player('player1', 'white');
     let black = new Player('player2', 'black');
     let game = new Game(white, black);
-    game.gameLoop(white);
+    // game.board.board[3][4] = new King('white', [3,4]);
+    // game.board.createChessBoard(game.board.board, game.color);
+
+    game.startGame(white);
     // game.board.createChessBoard(game.board.board, game.color);
     // console.log(game.board.board)
 });

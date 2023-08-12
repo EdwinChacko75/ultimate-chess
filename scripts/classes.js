@@ -8,6 +8,7 @@ export class Piece {
         this.firstMove = true;
         this.isCaputured = false;
         this.moves = [];
+        this.targets = [];
     }
     static createPiece(type, color, position) {
         switch (type) {
@@ -29,13 +30,15 @@ export class Piece {
                 throw new Error('Invalid piece type');
         }
     }
-    getMovesFromDirection(board, directions) {
+    getMovesFromDirection(chessBoard, directions) {
         let moves = [];
+        this.targets = [];
         let row = this.position[0];
         let col = this.position[1];
+        let board = chessBoard.board;
+
         let piece = board[row][col].type;
         let start = [row, col];
-
         
         for(let dir of directions) {               
             let i = 1;
@@ -43,13 +46,25 @@ export class Piece {
                 let newRow = row + i * dir[0];
                 let newCol = col + i * dir[1];
                 
-                if (newRow < 0 || newRow >= 8 || newCol < 0 || newCol >= 8 || board[newRow][newCol].color === this.color) {
+                if (newRow < 0 || newRow >= 8 || newCol < 0 || newCol >= 8) {
                     break;
-                } else if (board[newRow][newCol].type !== "Empty" && board[newRow][newCol].color !== this.color){
-                    moves.push(new Move(piece, start, [newRow, newCol], false));
+                } else if (board[newRow][newCol].type !== "Empty") {
+                    let move = new Move(piece, start, [newRow, newCol], false);
+                    if (board[newRow][newCol].color !== this.color){
+                        moves.push(move);
+                        this.targets.push(move);
+
+                    } 
+                    else if (board[newRow][newCol].color === this.color){
+                        this.targets.push(move);
+                    }
+                    
                     break;
                 }
-                moves.push(new Move(piece, start, [newRow, newCol], false));
+                let move = new Move(piece, start, [newRow, newCol], false);
+                moves.push(move);
+                this.targets.push(move);
+
                 i++;
             } 
             while (true && this.type !== "Knight" && this.type !== "King");
@@ -62,11 +77,14 @@ export class Pawn extends Piece {
     constructor(color, position) {
         super('Pawn', color, position);
         this.justMoved = false;
+        this.targets = [];
     }
-    getMoves(board) {
+    getMoves(chessBoard) {
+        this.targets = [];
         let moves = [];
         let row = this.position[0];
         let col = this.position[1];
+        let board = chessBoard.board;
         let piece = board[row][col].type;
         let start = [row, col];
         let direction = this.color == 'white' ? -c : c; // c is 1 or -1 declared at the top of the file
@@ -84,19 +102,39 @@ export class Pawn extends Piece {
 
         
         if (forward && board[forward[0]][forward[1]].type == 'Empty'){
-            moves.push(new Move(piece, start,[nextRow, col], false));
+            // let move = new Move(piece, start,[nextRow, col], false);
+            // move.type = 'Pawn Advance';
+            // moves.push(move);
+            moves.push(new Move(piece, start,[nextRow, col], false))
+
+            
             
             if (doubleStep && board[doubleStep[0]][doubleStep[1]].type == 'Empty' && this.firstMove) {
                 moves.push(new Move(piece, start, [doubleRow, col], false));
             }
         }
-        if (leftCapture && board[leftCapture[0]][leftCapture[1]].type !== 'Empty' && board[leftCapture[0]][leftCapture[1]].color != this.color) {
-            moves.push(new Move(piece, start,[nextRow, leftCol], false));
+        if (leftCapture) {
+            let move = new Move(piece, start,[nextRow, leftCol], false);
+            if (board[leftCapture[0]][leftCapture[1]].color != this.color && board[leftCapture[0]][leftCapture[1]].type !== 'Empty') {
+                let move = new Move(piece, start,[nextRow, leftCol], false);
+                moves.push(move);
+                this.targets.push(move);
+            }
+            else {
+                this.targets.push(move);
+            }
         }
-        if (rightCapture && board[rightCapture[0]][rightCapture[1]].type !== 'Empty' && board[rightCapture[0]][rightCapture[1]].color != this.color) {
-            moves.push(new Move(piece, start,[nextRow, rightCol], false));
+        if (rightCapture) {
+            let move = new Move(piece, start,[nextRow, rightCol], false);
+            if (board[rightCapture[0]][rightCapture[1]].color != this.color && board[rightCapture[0]][rightCapture[1]].type !== 'Empty') {
+                let move = new Move(piece, start,[nextRow, rightCol], false);
+                moves.push(move);
+                this.targets.push(move);
+            }
+            else {
+                this.targets.push(move);
+            }
         }
-            
         let enPassantRow = this.color == 'black' ? 4 : 3;
         let enPassantMoveRow = this.color == 'black' ? 5 : 2;
         if (row == enPassantRow) {
@@ -147,52 +185,57 @@ export class Pawn extends Piece {
 export class Rook extends Piece {
     constructor(color, position) {
         super('Rook', color, position);
+        this.directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
     }
     getMoves(board) {
-        let directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+        this.moves = this.getMovesFromDirection(board, this.directions);
 
-        this.moves = this.getMovesFromDirection(board, directions);
     }
 
 }
 export class Bishop extends Piece {
     constructor(color, position) {
         super('Bishop', color, position);
+        this.directions = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
     }
-    getMoves(board) {
-        let directions = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
-        
-        this.moves = this.getMovesFromDirection(board, directions);
+    getMoves(board) {        
+        this.moves = this.getMovesFromDirection(board, this.directions);
     }
 }
 export class Knight extends Piece {
     constructor(color, position) {
         super('Knight', color, position);
+        this.directions = [[2, 1], [1, 2], [-2, 1], [1, -2], [2, -1], [-2, -1], [-1, -2], [-1, 2]];
     }
     getMoves(board) {
-        let directions = [[2, 1], [1, 2], [-2, 1], [1, -2], [2, -1], [-2, -1], [-1, -2], [-1, 2]];
-        
-        this.moves = this.getMovesFromDirection(board, directions);
+        this.moves = this.getMovesFromDirection(board, this.directions);
     }
 }
 export class Queen extends Piece {
     constructor(color, position) {
         super('Queen', color, position);
+        this.directions = [[1, 1], [1, -1], [-1, 1], [-1, -1],[0, 1], [0, -1], [1, 0], [-1, 0]];
     }
     getMoves(board) {
-        let directions = [[1, 1], [1, -1], [-1, 1], [-1, -1],[0, 1], [0, -1], [1, 0], [-1, 0]];
-        
-        this.moves = this.getMovesFromDirection(board, directions);
+        this.moves = this.getMovesFromDirection(board, this.directions);  
+    
+    }
+    getTargets(board) {
     }
     
 }
 export class King extends Piece {
     constructor(color, position) {
         super('King', color, position);
+        this.directions = [[1, 1], [1, -1], [-1, 1], [-1, -1],[0, 1], [0, -1], [1, 0], [-1, 0]];
     }  
-    getMoves(board, unSafe) {
-        let directions = [[1, 1], [1, -1], [-1, 1], [-1, -1],[0, 1], [0, -1], [1, 0], [-1, 0]];
-        let moves = this.getMovesFromDirection(board, directions);
+    getTargets(board) {
+        return this.getTargetsFromDirection(board, this.directions);
+    }
+    getMoves(chessBoard) {
+        let board = chessBoard.board;
+
+        let moves = this.getMovesFromDirection(chessBoard, this.directions);
 
         let row = this.position[0];
         let col = this.position[1];
@@ -201,68 +244,43 @@ export class King extends Piece {
             let isSafe = true;
             let i = 1;
             while (board[row][col + i].type === "Empty" && col + i < 7) {
-                if (!this.isSafe([row, col + i], board)) {
+                if (!this.isSafe([row, col + i], chessBoard)) {
                     isSafe = false;
                     break;
                 }
                 i++;
-                console.log(board[row][col + i].type === "Empty" , col + i < 7,i)
 
-            }
-            if (this.color === 'white') {
-                console.log(board[row][col + i])
             }
             if (isSafe && board[row][col + i].type === "Rook" && board[row][col + i].color === this.color && board[row][col + i].firstMove) {
                 // check that intermediate squares are safe
-                console.log('short castle')
                 moves.push(new Move(this.type, [row,col], [row, col + i - Math.floor(i/2)], new Move(board[row][col + i], [row, col + i], [row, col + 1], false)));
             }
             let j = 1;
             isSafe = true;
             while (board[row][col - j].type === "Empty" && col - j > 0) {
-                if (!this.isSafe([row, col - j], board)) {
+                if (!this.isSafe([row, col - j], chessBoard)) {
                     isSafe = false;
                     break;
                 }
                 j++;
             }        
-           
             if (board[row][col - j].type === "Rook" && board[row][col - j].color === this.color && board[row][col - j].firstMove) {
                 //check that intermediate squares are safe
-                console.log('long castle')
-
                 moves.push(new Move(this.type, [row,col], [row, col - j + Math.floor(j/2)], new Move(board[row][col - j], [row, col - j], [row, col - 1], false)));
             }
         }
-        if (!unSafe) {
-            const safeMoves = moves.filter(move => {
-                return this.isSafe(move, board);
-            });
-            return safeMoves;
-        }
-        this.moves = moves;
+        
+            this.moves = moves;
     }
-    isSafe(position, board) {
-        let opponentMoves = this.color === 'white' ? board.blackTargetedSquares : board.whiteTargetedSquares;
+    isSafe(testMove, chessBoard) {
+        let opponentMoves = this.color === 'white' ? chessBoard.blackTargetedSquares : chessBoard.whiteTargetedSquares;
         if (opponentMoves === undefined) {
             return true;
         }
-        opponentMoves.forEach(move => {
-            if (move.end[0] === position[0] && move.end[1] === position[1]) {
-                return false;
-            }
-        });
-        return true;
+        return !opponentMoves.some(move => 
+            move.end[0] === testMove[0] && move.end[1] === testMove[1]
+        );
     }
-
-    // getSafeMoves(board) {
-    //     const moves = this.getMoves(board);
-    //     const safeMoves = moves.filter(move => {
-    //     // Use cached targeted squares to determine if this move is safe.
-    //         return this.isSafe(move, board);
-    //     });
-    //     this.moves = safeMoves;
-    // }
 
 }
 export class Empty extends Piece {
@@ -273,6 +291,9 @@ export class Empty extends Piece {
     getMoves(board) {
         return;
     }
+    getTargets(board) {
+        return;
+    }
 }
 
 export class Move {
@@ -281,6 +302,7 @@ export class Move {
         this.start = start;
         this.end = end;
         this.exception = exception;
+        this.type = 'Capture';
     }
 }
 
@@ -324,13 +346,13 @@ export class ChessBoard {
         this.board.forEach(row => {
             row.forEach(piece => {
                 if (piece.type !== "Empty") {
-                    piece.getMoves(this.board);
+                    piece.getMoves(this);
                 }
                 if (piece.color === "white") {
-                    this.whiteTargetedSquares = this.whiteTargetedSquares.concat(piece.moves);
+                    this.whiteTargetedSquares = this.whiteTargetedSquares.concat(piece.targets);
                 }
                 else if (piece.color === "black"){
-                    this.blackTargetedSquares = this.blackTargetedSquares.concat(piece.moves);
+                    this.blackTargetedSquares = this.blackTargetedSquares.concat(piece.targets);
                 }
             });
         });
@@ -338,7 +360,10 @@ export class ChessBoard {
     clickEvent(event) {
         event.stopPropagation();
         let clickedElement = event.target;
-        let board = this.board;
+        let chessBoard = this.board;
+        let board = this.board.board;
+        let turn = this.turn;
+
         var squares = document.querySelectorAll('.square');
         squares.forEach(square => {
             if (square.classList.contains('highlighted')) {
@@ -346,7 +371,7 @@ export class ChessBoard {
             }
         });
         if (clickedElement.tagName == 'LI' && clickedElement.classList.length == 2) {
-            this.removeAllHighlights();
+            chessBoard.removeAllHighlights();
             squares.forEach(square => {
                 if (square.classList.contains('selected')) {
                     square.classList.remove('selected');
@@ -358,6 +383,7 @@ export class ChessBoard {
             var squares = document.querySelectorAll('.square');
             
             if (!clickedElement.classList.contains('selected')) {
+
                 squares.forEach(square => {
                     if (square.classList.contains('selected')) {
                         square.classList.remove('selected');
@@ -366,19 +392,41 @@ export class ChessBoard {
                 clickedElement.classList.add('selected');
             
                 let position = ChessBoard.coordsToIndices(clickedElement.id);
-                let moves = board[position[0]][position[1]].moves
-                this.removeAllHighlights();
+                let piece = board[position[0]][position[1]];
+                let moves = piece.moves;
+                let unSafeMoves = [];
+                if (piece.color === turn) {
+                    return
+                }
+                if (piece.type === "King") {
+                    let opponentMoves = piece.color === 'white' ? this.blackTargetedSquares : this.whiteTargetedSquares;
+                    piece.moves.forEach(testMove => {
+                        opponentMoves.forEach(move => {
+                            if (move.end[0] === testMove.end[0] && move.end[1] === testMove.end[1] && move.type === 'Capture') {
+                                unSafeMoves.push(move.end);
+                            }
+                        });
+                    });
+                    let filteredMoves = moves.filter(move => 
+                        !unSafeMoves.some(arr => 
+                            arr[0] === move.end[0] && arr[1] === move.end[1]
+                        )
+                    );
+                    moves = filteredMoves;
+                }
+                chessBoard.removeAllHighlights();
                 moves.forEach(move => {
                     let square = document.getElementById(ChessBoard.indicesToCoords(move.end));
                     square.classList.add('newhighlight');
-            });
+                });
             }
             else if (clickedElement.classList.contains('selected')) {
                 clickedElement.classList.remove('selected');
-                this.removeAllHighlights();
+                chessBoard.removeAllHighlights();
             }   
         }
     }
+    
     updateTargetedSquares() {
         this.whiteTargetedSquares = [];
         this.blackTargetedSquares = [];
@@ -387,14 +435,16 @@ export class ChessBoard {
             for (let piece of row) {
                 if (piece.name === "Empty") continue;
                 
-                piece.getMoves(this.board, piece.type === "King"); 
-                if (piece.moves === [] || piece.moves === undefined) continue;
-                for (let move of piece.moves) {
-                    if (piece.color === "white") {
-                        this.whiteTargetedSquares.push(move);
+                piece.getMoves(this); 
+                if (piece.type === "King" && piece.color === "black") {
+                }
+                if (piece.targets === [] || piece.targets === undefined) continue;
+                for (let move of piece.targets) {
+                    if (piece.color === "black") {
+                        this.blackTargetedSquares.push(move);
                     } 
-                    else {
-                    this.blackTargetedSquares.push(move);
+                    else if (piece.color === "white"){
+                        this.whiteTargetedSquares.push(move);
                     }
                 }
             }
@@ -464,8 +514,7 @@ export class ChessBoard {
         let elements = document.querySelectorAll('.lastmove');
         c = -c; 
         this.createChessBoard(this.board, this.color);
-        console.log(this.board);
-        console.log(this.color)
+        
 
 
         const boardElement = document.getElementById("board");
@@ -474,7 +523,9 @@ export class ChessBoard {
         
     }
     
-    createChessBoard(board, color) {
+    createChessBoard(game) {
+        let board = game.board.board;
+        let color = game.color;
         ChessBoard.removeBoard();
 
         const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
@@ -533,8 +584,8 @@ export class ChessBoard {
             });
         });
         const boardElement = document.getElementById("board");
-        boardElement.removeEventListener('click', this.clickEvent.bind(this));
-        boardElement.addEventListener('click', this.clickEvent.bind(this));
+        boardElement.removeEventListener('click', this.clickEvent.bind(game));
+        boardElement.addEventListener('click', this.clickEvent.bind(game));
 
     }
 }
@@ -552,6 +603,7 @@ export class Player {
         let clickedElement = event.target;
         let chessBoard = this.board;
         let board = this.board.board;
+        let turn = this.turn;
         
         if (clickedElement.classList.contains('newhighlight') || clickedElement.parentNode.classList.contains('newhighlight')) {
             let start = ChessBoard.coordsToIndices(document.querySelector('.selected').id);
@@ -560,10 +612,14 @@ export class Player {
             let move = moves.find(move => move.end[0] == end[0] && move.end[1] == end[1]);
 
             if ((end[0] == 0 || end[0] == 7) && board[start[0]][start[1]].type === 'Pawn') {
-                document.getElementById('promotion-modal').style.display = 'flex';
-                document.getElementById('promotion-modal').addEventListener('click', (e) => {
+                let id = 'promotion-modal-' + board[start[0]][start[1]].color;
+                document.getElementById(id).style.display = 'flex';
+                document.getElementById(id).addEventListener('click', (e) => {
                     board[end[0]][end[1]].isCaptured = true;
-                    board[end[0]][end[1]] = piece.promote(e.target.id);
+                    board[end[0]][end[1]] = board[end[0]][end[1]].promote(e.target.id);
+
+                    this.makeMove(new Move(board[end[0]][end[1]], end, end));
+                    document.getElementById(id).style.display = 'none';
                 });
             } 
 
@@ -585,6 +641,7 @@ export class Player {
             
             this.moves.push(move);
             chessBoard.removeAllHighlights();
+            this.turn = this.turn === "white" ? this.blackPlayer.color : this.whitePlayer.color;
         }
         
     }    
@@ -594,23 +651,16 @@ export class Game {
         this.whitePlayer = whitePlayer;
         this.blackPlayer = blackPlayer;
         this.board = new ChessBoard();
-        this.turn = "white";
+        this.turn = whitePlayer;
         this.moves = [];
         this.isOver = false;
         
     }
-    gameLoop(turn) {
-        this.board.createChessBoard(this.board.board, this.board.color);
+    startGame(turn) {
+        this.board.createChessBoard(this);
         const boardElement = document.getElementById("board");
-        boardElement.addEventListener('click', turn.decideMove.bind(this));
-
-
-        let nextTurn = turn.color === "white" ? this.blackPlayer : this.whitePlayer;
-        this.turn = nextTurn.color;
-        // this.gameLoop(nextTurn);
-
-
-        // this.gameLoop(this.turn);
+        boardElement.addEventListener('click', turn.decideMove.bind(this));     
+        
     }
     closeModal() {
         document.getElementById('promotion-modal').style.display = 'none';
@@ -624,18 +674,7 @@ export class Game {
         let end = move.end;
         let board = this.board.board;
         let piece = board[start[0]][start[1]];
-        // if (move.exception) {
-        //     if (piece.type === "Pawn") {
-        //         board[move.exception[0]][move.exception[1]].isCaptured = true;
-        //         let element = document.getElementById(ChessBoard.indicesToCoords(move.exception)).querySelector('img')
-        //         if(element){
-        //             element.remove();
-        //         };
-        //     }
-        //     else if (piece.type === "King") {
-        //         this.makeMove(board);
-        //     }
-        // }
+        
         if (piece.firstMove) {
             piece.firstMove = false;
             if (piece.type === "Pawn") {
@@ -659,17 +698,7 @@ export class Game {
         board[start[0]][start[1]] = new Empty(start);
         board[end[0]][end[1]] = piece;
         piece.position = end;
-        
-            // this is shortcut a bit and may lead to issues. 
-            // a white pawn moving backward to the first rank will be promoted
-            // this should not be an issue as such movement is not permitted
-        if (piece.type === "Pawn" && (end[0] === 7  || end[0] === 0)) {
-            // document.getElementById('promotion-modal').style.display = 'flex';
-            // document.getElementById('promotion-modal').addEventListener('click', (e) => {
-                board[end[0]][end[1]].isCaptured = true;
-                board[end[0]][end[1]] = piece.promote("Queen");//e.target.id);
-            // });
-        }
+    
 
         let element = document.getElementById(ChessBoard.indicesToCoords(start)).querySelector('img')
         if (element) {
@@ -694,7 +723,18 @@ export class Game {
         document.getElementById(ChessBoard.indicesToCoords(start)).classList.add('lastmove');
 
         this.board.updateTargetedSquares();
-        
+        if (this.isCheckamte()) {
+            pass
+        }
+        if (this.isDraw()) {
+            pass
+        }
+    }
+    isCheckamte() {
+        return false;
+    }
+    isDraw() {
+        return false;
     }
     
 }
