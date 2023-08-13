@@ -1,6 +1,5 @@
 import {ChessBoard, Piece, Pawn, Empty, Rook, Bishop, Queen, King, Knight, Move, Game, Player} from "./classes.js";
 
-let chessBoard = new ChessBoard();
 
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -52,6 +51,6 @@ document.addEventListener("DOMContentLoaded", (event)=> {
     }
 });
 
-document.getElementById('flipBoardButton').addEventListener('click', () => {
-    chessBoard.flipBoard(chessBoard.board);  
-});
+// document.getElementById('flipBoardButton').addEventListener('click', () => {
+//     chessBoard.flipBoard(chessBoard.board);  
+// });
