@@ -16,7 +16,9 @@ export class ChessBoard {
             this.board.push(row);
         }
 
+        
         initialPieces.forEach(piece => {
+
             this.board[piece.position[0]][piece.position[1]] = piece;
         });
 
@@ -44,11 +46,9 @@ export class ChessBoard {
         let chessBoard = this.board;
         let board = this.board.board;
         let turn = this.turn;
+        this.legalMoves(turn);
+
         let indices = ChessBoard.coordsToIndices(clickedElement.parentNode.id);
-        
-        if (this.turn.isInCheck) {
-            console.log('in check');
-        }
 
 
         if (indices.length === 2 && board[indices[0]][indices[1]].color !== turn.color && !clickedElement.parentNode.classList.contains('newhighlight')) {
@@ -71,23 +71,25 @@ export class ChessBoard {
         else if (clickedElement.tagName === 'IMG' && !clickedElement.parentNode.classList.contains('newhighlight')) {
             clickedElement = clickedElement.parentNode;
             var squares = document.querySelectorAll('.square');
-            
             if (!clickedElement.classList.contains('selected')) {
-
+                
                 squares.forEach(square => {
                     if (square.classList.contains('selected')) {
                         square.classList.remove('selected');
                     }
                 });
                 clickedElement.classList.add('selected');
-            
+                
                 let position = ChessBoard.coordsToIndices(clickedElement.id);
                 let piece = board[position[0]][position[1]];
-                let moves = piece.moves;
-                let unSafeMoves = [];
                 if (piece.color !== turn.color) {
-                    return
+                    return;
                 }
+
+                let moves = piece.moves;
+
+                let unSafeMoves = [];
+                
                 if (piece.type === "King") {
                     let opponentMoves = piece.color === 'white' ? chessBoard.blackTargetedSquares : chessBoard.whiteTargetedSquares;
                     piece.moves.forEach(testMove => {
@@ -141,7 +143,11 @@ export class ChessBoard {
     }
 
     static removeBoard() {
-        document.getElementById("board").innerHTML = "";
+        document.getElementById("board-container").childNodes.forEach(child => {
+            if (child.id === "board") {
+                child.remove();
+            }
+        });
     }
 
     static indicesToCoords(position) {
@@ -216,7 +222,7 @@ export class ChessBoard {
         let board = game.board.board;
         let color = game.color;
         ChessBoard.removeBoard();
-
+        document.getElementById("board-container").innerHTML += '<ul id="board"></ul>';
         const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
         const rows = ['8', '7', '6', '5', '4', '3', '2', '1'];
 
@@ -292,8 +298,10 @@ export class Game {
     startGame(turn) {
         this.board.createChessBoard(this);
         const boardElement = document.getElementById("board");
-        boardElement.addEventListener('click', turn.decideMove.bind(this));     
-        
+        boardElement.removeEventListener('click', turn.decideMove.bind(this));
+        boardElement.addEventListener('click', turn.decideMove.bind(this));
+        let element = document.getElementById("game-over");
+        element.style.display = "none";
     }
     closeModal() {
         document.getElementById('promotion-modal').style.display = 'none';
@@ -303,14 +311,11 @@ export class Game {
         document.getElementById('promotion-modal').style.display = 'flex';
     }   
   
-    makeTestMove(move) {
-    }
-    
     makeMove(move) {
         let start = move.start;
         let end = move.end;
         let board = this.board.board;
-        let piece = board[start[0]][start[1]];
+        let piece = move.piece;
         
         if (piece.firstMove) {
             piece.firstMove = false;
@@ -329,7 +334,7 @@ export class Game {
                 board[i][j].justMoved = false;
             }
         }
-        if (board[end[0]][end[1]].type !== "Empty") {
+        if (board[end[0]][end[1]].type !== "Empty" && !board[end[0]][end[1]].promoted) {
             board[end[0]][end[1]].isCaptured = true;
         }
         board[start[0]][start[1]] = new Empty(start);
@@ -360,25 +365,54 @@ export class Game {
         document.getElementById(ChessBoard.indicesToCoords(start)).classList.add('lastmove');
 
         this.board.updateTargetedSquares();
-        if (this.isCheckmate()) {
-            pass
-        }
-        if (this.isDraw()) {
-            pass
-        }
-        if (this.isCheck(piece.color)) {
-            
+        let nextTurn = this.turn.color === this.whitePlayer.color ? this.blackPlayer : this.whitePlayer;
+        this.isCheck(this.board, this.turn.color);
+
+        if (this.legalMoves(nextTurn).length === 0) {
+            if(this.isCheck(this.board, this.turn.color)) {
+                this.isCheckmate = true;
+                this.isOver = true;
+                this.checkmate(this.turn.color);
+            }
+            else {
+                this.isDraw = true;
+                this.isOver = true;
+                this.draw();
+            }
         }
     }
-    isCheckmate() {
-        return false;
+  
+    checkmate(color) {
+        let element = document.getElementById('game-over');
+        color = color.charAt(0).toUpperCase() + color.slice(1);
+        let messageElement = document.getElementById('end-message');
+        console.log(messageElement)
+        messageElement.innerHTML =  color + ' wins by <br> checkmate!';
+        element.style.display = 'flex';
+        this.listenForNewGame();
     }
-    isDraw() {
-        return false;
+    draw() {
+        let element = document.getElementById('game-over');
+        let messageElement = document.getElementById('end-message');
+        messageElement.innerHTML = 'Draw by stalemate!';
+        element.style.display = 'flex';
+        this.listenForNewGame();
     }
-    isCheck(color) {
+    listenForNewGame() {
+        document.getElementById('startNewGame').addEventListener('click', () => {
+            let element = document.getElementById('game-over-background');
+            element.innerHTML = '<p id="end-message"></p>   <button id="startNewGame">New Game</button>';
+            element.parentElement.style.display = 'none';
+            let white = new Player('player1', 'white');
+            let black = new Player('player2', 'black');
+            let game = new Game(white, black);
+            game.startGame(white);
+        });
+    }
+    isCheck(chessboard, color) {
+        chessboard.updateTargetedSquares();
         if (color === "white") {
-            let targetedSquares = this.board.whiteTargetedSquares.map((move) => {
+            let targetedSquares = chessboard.whiteTargetedSquares.map((move) => {
                 return move.end[0] + "," + move.end[1];
             });
             let kingPosition = this.blackPlayer.kingPosition()[0] + "," + this.blackPlayer.kingPosition()[1];
@@ -398,58 +432,74 @@ export class Game {
         }
         return false;
     }
-    deepCopyBoard(board) {
-        const newBoard = [];
-        for (let row = 0; row < board.length; row++) {
-            const newRow = [];
-            for (let col = 0; col < board[row].length; col++) {
-            const piece = board[row][col];
-            if (piece) {
-                const newPiece = new Piece(piece.type, piece.color, piece.position); 
-                newPiece.moves = piece.moves.map(move => {
-                    let newMove = new Move(newPiece, move.start, move.end);
-                    newMove.exception = move.exception;
-                    newMove.type = move.type;
-                    return new Move(move.start, move.end, move.otherAttributes); 
-                });
-                newPiece.firstMove = piece.firstMove;
-                newPiece.isCaputured = piece.isCaputured;
-                newPiece.targets = piece.targets.map(move => {
-                    return new Move(move.start, move.end, move.otherAttributes);
-
-                });
-
-                newRow.push(newPiece);
-            } else {
-                newRow.push(null);
+    isLegalMove(chessboard, color, kingPosition) {
+        chessboard.updateTargetedSquares();
+        if (color === "white") {
+            let targetedSquares = chessboard.blackTargetedSquares.map((move) => {
+                return move.end[0] + "," + move.end[1];
+            });
+            if (targetedSquares.includes(kingPosition)) {
+                return false;
             }
-            }
-            newBoard.push(newRow);
+        } else {
+            let targetedSquares = chessboard.whiteTargetedSquares.map((move) => {
+                return move.end[0] + "," + move.end[1];
+            });
+            if (targetedSquares.includes(kingPosition)) {
+                return false;
+            }        
         }
-        console.log(newBoard)
-        return newBoard;
+        return true;
     }
-      
-    legalMoves(board) {
-        let moves = [];
-        let legalMoves = [];
-
-        board.forEach((row) => {
-            row.forEach((piece) => {
-                if (piece.color === this.turn.color) {
-                    moves = moves.concat(piece.moves)
+    legalMoves(player) {
+        let allLegalMoves = [];
+        player.pieces.forEach((piece) => {
+            let legalMoves = [];
+            piece.moves.forEach((move) => {
+                let kingPosition = player.kingPosition();
+                let allPieces = this.blackPlayer.pieces.concat(this.whitePlayer.pieces).map(piece => {
+                    if (!piece.isCaptured) {
+                        let newPiece;
+                        switch (piece.type) {
+                            case "Pawn":
+                                newPiece = new Pawn(piece.color, piece.position);
+                                break;
+                            case "Rook":
+                                newPiece = new Rook(piece.color, piece.position);
+                                break;
+                            case "Knight":
+                                newPiece = new Knight(piece.color, piece.position);
+                                break;
+                            case "Bishop":
+                                newPiece = new Bishop(piece.color, piece.position);
+                                break;
+                            case "Queen":
+                                newPiece = new Queen(piece.color, piece.position);
+                                break;
+                            case "King":
+                                newPiece = new King(piece.color, piece.position);
+                                break;
+                        }
+                        newPiece.firstMove = piece.firstMove;
+                        newPiece.justMoved = piece.justMoved;
+                        newPiece.isCaptured = piece.isCaptured;
+                        return newPiece;
+                    }
+                    return null;
+                }).filter(piece => piece !== null);
+                let testBoard = new ChessBoard(allPieces);
+                if (move.piece.type === "King") {
+                    kingPosition = [move.end[0], move.end[1]];
+                }   
+                player.makeTestMove(testBoard, move);
+                if (this.isLegalMove(testBoard, player.color, `${kingPosition[0]},${kingPosition[1]}`) && !move.piece.isCaptured) {
+                    legalMoves.push(move);
                 }
             });
+            allLegalMoves = allLegalMoves.concat(legalMoves);
+            piece.moves = legalMoves;
         });
-
-        moves.forEach((move) => {
-            let testBoard = this.deepCopyBoard(board);
-            console.log(testBoard)
-            this.makeTestMove(move);
-            if (!this.isCheck(this.turn.color)) {
-                legalMoves.push(move);
-            }
-        });
+        return allLegalMoves;
     }
 
     
@@ -485,14 +535,49 @@ export class Player {
             new Pawn(color, [j, 7])
         ];
     }
+    undoTestMove(chessBoard, move, affectedPieces, initialAttributes) {
+        
+    }
+    makeTestMove(chessBoard, move) {
+        let start = move.start;
+        let end = move.end;
+        let board = chessBoard.board;
+        let piece = board[start[0]][start[1]];
+        let endPiece = board[end[0]][end[1]];
+        
+        if (piece.firstMove) {
+            piece.firstMove = false;
+            if (piece.type === "Pawn") {
+                if (piece.justMoved){
+                    piece.justMoved = false;
+                } else {
+                    piece.justMoved = true;
+                }
+            }
+        }
+        for (let i = 0; i < 8; i++) {
+            for (let j = 0; j < 8 ; j++) {
+                if (i === start[0] && j === start[1])
+                    continue;
+                board[i][j].justMoved = false;
+            }
+        }
+        if (board[end[0]][end[1]].type !== "Empty") {
+            board[end[0]][end[1]].isCaptured = true;
+        }
+        board[start[0]][start[1]] = new Empty(start);
+        board[end[0]][end[1]] = piece;
+        piece.position = end;
+    
+        chessBoard.updateTargetedSquares();
+    }
 
     decideMove(event) {
         event.stopPropagation();
         let clickedElement = event.target;
         let chessBoard = this.board;
         let board = this.board.board;
-        this.legalMoves(board);
-        // let turn = this.turn;
+        let turn = this.turn;
         
         if (clickedElement.classList.contains('newhighlight') || clickedElement.parentNode.classList.contains('newhighlight')) {
             let start = ChessBoard.coordsToIndices(document.querySelector('.selected').id);
@@ -505,9 +590,12 @@ export class Player {
                 document.getElementById(id).style.display = 'flex';
                 document.getElementById(id).addEventListener('click', (e) => {
                     board[end[0]][end[1]].isCaptured = true;
-                    board[end[0]][end[1]] = board[end[0]][end[1]].promote(e.target.id);
+                    board[end[0]][end[1]] = board[end[0]][end[1]].promote(e.target.id, this);
 
+                    // board[end[0]][end[1]].getMoves(chessBoard);
+                    // turn.pieces[turn.pieces.length - 1].moves = board[end[0]][end[1]].moves;
                     this.makeMove(new Move(board[end[0]][end[1]], end, end));
+                    board[end[0]][end[1]].promoted = false;
                     document.getElementById(id).style.display = 'none';
                 });
             } 
@@ -533,6 +621,7 @@ export class Player {
             this.turn = this.turn.color === "white" ? this.blackPlayer : this.whitePlayer;
         }
     }  
+
     kingPosition() {
         let king = this.pieces.find(piece => piece.type === 'King');
         return king.position;
@@ -545,9 +634,10 @@ export class Piece {
         this.color = color;
         this.position = position;
         this.firstMove = true;
-        this.isCaputured = false;
+        this.isCaptured = false;
         this.moves = [];
         this.targets = [];
+        this.promoted = false;
     }
     static createPiece(type, color, position) {
         switch (type) {
@@ -576,7 +666,7 @@ export class Piece {
         let col = this.position[1];
         let board = chessBoard.board;
 
-        let piece = board[row][col].type;
+        let piece = board[row][col];
         let start = [row, col];
         
         for(let dir of directions) {               
@@ -616,7 +706,6 @@ export class Pawn extends Piece {
     constructor(color, position) {
         super('Pawn', color, position);
         this.justMoved = false;
-        this.targets = [];
     }
     getMoves(chessBoard) {
         this.targets = [];
@@ -624,7 +713,7 @@ export class Pawn extends Piece {
         let row = this.position[0];
         let col = this.position[1];
         let board = chessBoard.board;
-        let piece = board[row][col].type;
+        let piece = board[row][col];
         let start = [row, col];
         let direction = this.color == 'white' ? -c : c; // c is 1 or -1 declared at the top of the file
 
@@ -641,13 +730,8 @@ export class Pawn extends Piece {
 
         
         if (forward && board[forward[0]][forward[1]].type == 'Empty'){
-            // let move = new Move(piece, start,[nextRow, col], false);
-            // move.type = 'Pawn Advance';
-            // moves.push(move);
             moves.push(new Move(piece, start,[nextRow, col], false))
 
-            
-            
             if (doubleStep && board[doubleStep[0]][doubleStep[1]].type == 'Empty' && this.firstMove) {
                 moves.push(new Move(piece, start, [doubleRow, col], false));
             }
@@ -676,6 +760,7 @@ export class Pawn extends Piece {
         }
         let enPassantRow = this.color == 'black' ? 4 : 3;
         let enPassantMoveRow = this.color == 'black' ? 5 : 2;
+
         if (row == enPassantRow) {
             let leftEnPassant = board[enPassantRow][leftCol];
             let rightEnPassant = board[enPassantRow][rightCol];
@@ -692,9 +777,10 @@ export class Pawn extends Piece {
         this.moves =  moves;
     }
 
-    promote(promoted) {
+    promote(promoteToThis, game) {
         let newPiece;
-        switch (promoted) {
+        let player = this.color === 'white' ? game.whitePlayer : game.blackPlayer;
+        switch (promoteToThis) {
             case 'Queen':
                 newPiece = new Queen(this.color, this.position);
                 newPiece.firstMove = false;
@@ -716,8 +802,11 @@ export class Pawn extends Piece {
                 newPiece.firstMove = false;
                 break;
         }
+        player.pieces.push(newPiece);
         newPiece.firstMove = false;
-        this.isCaptured = true;
+        newPiece.promoted = true;
+        newPiece.isCaptured = false;
+
         return newPiece;
     }
 }
@@ -726,9 +815,8 @@ export class Rook extends Piece {
         super('Rook', color, position);
         this.directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
     }
-    getMoves(board) {
-        this.moves = this.getMovesFromDirection(board, this.directions);
-
+    getMoves(chessBoard) {
+        this.moves = this.getMovesFromDirection(chessBoard, this.directions);
     }
 
 }
@@ -737,8 +825,8 @@ export class Bishop extends Piece {
         super('Bishop', color, position);
         this.directions = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
     }
-    getMoves(board) {        
-        this.moves = this.getMovesFromDirection(board, this.directions);
+    getMoves(chessBoard) {        
+        this.moves = this.getMovesFromDirection(chessBoard, this.directions);
     }
 }
 export class Knight extends Piece {
@@ -746,8 +834,8 @@ export class Knight extends Piece {
         super('Knight', color, position);
         this.directions = [[2, 1], [1, 2], [-2, 1], [1, -2], [2, -1], [-2, -1], [-1, -2], [-1, 2]];
     }
-    getMoves(board) {
-        this.moves = this.getMovesFromDirection(board, this.directions);
+    getMoves(chessBoard) {
+        this.moves = this.getMovesFromDirection(chessBoard, this.directions);
     }
 }
 export class Queen extends Piece {
@@ -755,21 +843,17 @@ export class Queen extends Piece {
         super('Queen', color, position);
         this.directions = [[1, 1], [1, -1], [-1, 1], [-1, -1],[0, 1], [0, -1], [1, 0], [-1, 0]];
     }
-    getMoves(board) {
-        this.moves = this.getMovesFromDirection(board, this.directions);  
+    getMoves(chessBoard) {
+        this.moves = this.getMovesFromDirection(chessBoard, this.directions);  
     
-    }
-    getTargets(board) {
     }
     
 }
+
 export class King extends Piece {
     constructor(color, position) {
         super('King', color, position);
         this.directions = [[1, 1], [1, -1], [-1, 1], [-1, -1],[0, 1], [0, -1], [1, 0], [-1, 0]];
-    }  
-    getTargets(board) {
-        return this.getTargetsFromDirection(board, this.directions);
     }
     getMoves(chessBoard) {
         let board = chessBoard.board;
@@ -781,6 +865,7 @@ export class King extends Piece {
 
         if (this.firstMove) {
             let isSafe = true;
+            // short castle
             let i = 1;
             while (board[row][col + i].type === "Empty" && col + i < 7) {
                 if (!this.isSafe([row, col + i], chessBoard)) {
@@ -794,6 +879,7 @@ export class King extends Piece {
                 // check that intermediate squares are safe
                 moves.push(new Move(this.type, [row,col], [row, col + i - Math.floor(i/2)], new Move(board[row][col + i], [row, col + i], [row, col + 1], false)));
             }
+            // long castle
             let j = 1;
             isSafe = true;
             while (board[row][col - j].type === "Empty" && col - j > 0) {
@@ -827,10 +913,7 @@ export class Empty extends Piece {
         super('Empty', null, position);
         this.firstMove = false;
     }
-    getMoves(board) {
-        return;
-    }
-    getTargets(board) {
+    getMoves(chessBoard) {
         return;
     }
 }

@@ -1,43 +1,10 @@
 import {ChessBoard, Piece, Pawn, Empty, Rook, Bishop, Queen, King, Knight, Move, Game, Player} from "./classes.js";
 
-
-
 document.addEventListener("DOMContentLoaded", () => {
-    // chessBoard.createChessBoard(chessBoard.board,chessBoard.color);
-    // chessBoard.arrowCoords();
-    const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-    const rows = ['8', '7', '6', '5', '4', '3', '2', '1'];
-
-    let r = 4;
-    let c = 3;
-    let br = 4;
-    let bc = 1;
-    // let whiteRook = new Rook('white', [r,c]);  // Example for white pawn at e4
-    // let blackPawn = new Pawn('white', [br,bc]); // Example for white pawn at e4
-
-    // chessBoard.board[r][c] = whiteRook;
-
-    // chessBoard.board[br][bc] = blackPawn;
-    // let move = new Move(chessBoard.board[6][0], chessBoard.board[6][0].position, [0,1]);
-    // move.makeMove(chessBoard.board);
-    // console.log(chessBoard.board[0][1], chessBoard.board[0][1].position);
-    // let move2 = new Move(chessBoard.board[7][0], chessBoard.board[7][0].position, [0,2]);
-    // move2.makeMove(chessBoard.board);
-    // console.log(chessBoard.board);
-    // chessBoard.board.forEach(row => {
-    //     row.reverse();
-    // });
-    // chessBoard.board.reverse();
-    // console.log(chessBoard.board);
     let white = new Player('player1', 'white');
     let black = new Player('player2', 'black');
     let game = new Game(white, black);
-    // game.board.board[3][4] = new King('white', [3,4]);
-    // game.board.createChessBoard(game.board.board, game.color);
-
     game.startGame(white);
-    // game.board.createChessBoard(game.board.board, game.color);
-    // console.log(game.board.board)
 });
 
 document.addEventListener("DOMContentLoaded", (event)=> {
