@@ -315,7 +315,7 @@ export class Game {
         let start = move.start;
         let end = move.end;
         let board = this.board.board;
-        let piece = move.piece;
+        let piece = board[start[0]][start[1]];
         
         if (piece.firstMove) {
             piece.firstMove = false;
