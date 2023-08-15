@@ -108,6 +108,9 @@
   display: none;
 
 }
+#flipBoardButton {
+  display: none;
+}
 .square.newhighlight::after {
   content: "";
   position: absolute;
