@@ -386,7 +386,6 @@ export class Game {
         let element = document.getElementById('game-over');
         color = color.charAt(0).toUpperCase() + color.slice(1);
         let messageElement = document.getElementById('end-message');
-        console.log(messageElement)
         messageElement.innerHTML =  color + ' wins by <br> checkmate!';
         element.style.display = 'flex';
         this.listenForNewGame();
