@@ -316,7 +316,13 @@ export class Game {
         let end = move.end;
         let board = this.board.board;
         let piece = board[start[0]][start[1]];
-        
+
+        if(move.exception && move.piece.type === "Pawn") {
+            board[move.exception[0]][move.exception[1]].isCaptured = true;
+            board[move.exception[0]][move.exception[1]] = new Empty(move.exception);
+            document.getElementById(ChessBoard.indicesToCoords(move.exception)).querySelector('img').remove();
+        }
+
         if (piece.firstMove) {
             piece.firstMove = false;
             if (piece.type === "Pawn") {
@@ -591,8 +597,6 @@ export class Player {
                     board[end[0]][end[1]].isCaptured = true;
                     board[end[0]][end[1]] = board[end[0]][end[1]].promote(e.target.id, this);
 
-                    // board[end[0]][end[1]].getMoves(chessBoard);
-                    // turn.pieces[turn.pieces.length - 1].moves = board[end[0]][end[1]].moves;
                     this.makeMove(new Move(board[end[0]][end[1]], end, end));
                     board[end[0]][end[1]].promoted = false;
                     document.getElementById(id).style.display = 'none';
@@ -602,14 +606,15 @@ export class Player {
             this.makeMove(move);
 
             if (move.exception) {
-                if (move.piece === "Pawn") {
-                    board[move.exception[0]][move.exception[1]].isCaptured = true;
-                    let element = document.getElementById(ChessBoard.indicesToCoords(move.exception)).querySelector('img')
-                    if(element){
-                        element.remove();
-                    };
-                }
-                else if (move.piece === "King") {
+                // if (move.piece === "Pawn") {
+                //     board[move.exception[0]][move.exception[1]].isCaptured = true;
+                //     let element = document.getElementById(ChessBoard.indicesToCoords(move.exception)).querySelector('img')
+                //     if(element){
+                //         element.remove();
+                //     };
+                // }
+                // else 
+                if (move.piece === "King") {
                     this.makeMove(move.exception);
                 }
             }
