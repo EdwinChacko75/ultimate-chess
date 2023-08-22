@@ -297,10 +297,9 @@ export class Game {
     startGame(turn) {
         this.board.createChessBoard(this);
         const boardElement = document.getElementById("board");
-        // boardElement.removeEventListener('click', turn.decideMove.bind(this));
         let element = document.getElementById("game-over");
         element.style.display = "none";
-        this.multiplayerGameLoop(); // start the game loop
+        this.GameLoop(); 
     }
 
     houseKeeping() {
@@ -330,12 +329,11 @@ export class Game {
         });
         }
     
-    async multiplayerGameLoop() {
+    async GameLoop() {
         while (!this.isOver) {
             let move = this.turn instanceof AI ? this.turn.decideMove(this) : await this.waitForPlayerMove(this);
             await this.makeMove(move);
             this.houseKeeping();
-            // console.log(this)
         }
     }
     
@@ -368,7 +366,7 @@ export class Game {
         let startCoords = ChessBoard.indicesToCoords(start);
         let endCoords = ChessBoard.indicesToCoords(end);
 
-        if(move.exception && move.piece.type === "Pawn") {
+        if(move.exception && move.piece === "Pawn") {
             board[move.exception[0]][move.exception[1]].isCaptured = true;
             board[move.exception[0]][move.exception[1]] = new Empty(move.exception);
             document.getElementById(ChessBoard.indicesToCoords(move.exception)).querySelector('img').remove();
@@ -448,6 +446,7 @@ export class Game {
         }
         else {
             if (board[end[0]][end[1]].type !== "Empty" && !board[end[0]][end[1]].promoted) {
+                board[end[0]][end[1]].moves = [];
                 board[end[0]][end[1]].isCaptured = true;
             }
             
@@ -536,6 +535,36 @@ export class Game {
         }
         return false;
     }
+    static clonePiece(piece) {
+        if (piece.isCaptured) return null;
+    
+        let newPiece;
+        switch (piece.type) {
+            case "Pawn":
+                newPiece = new Pawn(piece.color, piece.position);
+                break;
+            case "Rook":
+                newPiece = new Rook(piece.color, piece.position);
+                break;
+            case "Knight":
+                newPiece = new Knight(piece.color, piece.position);
+                break;
+            case "Bishop":
+                newPiece = new Bishop(piece.color, piece.position);
+                break;
+            case "Queen":
+                newPiece = new Queen(piece.color, piece.position);
+                break;
+            case "King":
+                newPiece = new King(piece.color, piece.position);
+                break;
+        }
+        newPiece.firstMove = piece.firstMove;
+        newPiece.justMoved = piece.justMoved;
+        newPiece.isCaptured = piece.isCaptured;
+        return newPiece;
+    }
+
     isLegalMove(chessboard, color, kingPosition) {
         chessboard.updateTargetedSquares();
         if (color === "white") {
@@ -555,53 +584,28 @@ export class Game {
         }
         return true;
     }
+    
     legalMoves(player) {
         let allLegalMoves = [];
         player.pieces.forEach((piece) => {
             let legalMoves = [];
             piece.moves.forEach((move) => {
                 let kingPosition = player.kingPosition();
-                let allPieces = this.blackPlayer.pieces.concat(this.whitePlayer.pieces).map(piece => {
-                    if (!piece.isCaptured) {
-                        let newPiece;
-                        switch (piece.type) {
-                            case "Pawn":
-                                newPiece = new Pawn(piece.color, piece.position);
-                                break;
-                            case "Rook":
-                                newPiece = new Rook(piece.color, piece.position);
-                                break;
-                            case "Knight":
-                                newPiece = new Knight(piece.color, piece.position);
-                                break;
-                            case "Bishop":
-                                newPiece = new Bishop(piece.color, piece.position);
-                                break;
-                            case "Queen":
-                                newPiece = new Queen(piece.color, piece.position);
-                                break;
-                            case "King":
-                                newPiece = new King(piece.color, piece.position);
-                                break;
-                        }
-                        newPiece.firstMove = piece.firstMove;
-                        newPiece.justMoved = piece.justMoved;
-                        newPiece.isCaptured = piece.isCaptured;
-                        return newPiece;
-                    }
-                    return null;
-                }).filter(piece => piece !== null);
+                let allPieces = this.blackPlayer.pieces.concat(this.whitePlayer.pieces)
+                .map(Game.clonePiece)
+                .filter(piece => piece !== null);
+                // console.log(allPieces)
                 let testBoard = new ChessBoard(allPieces);
-                // console.log(testBoard)
-                if (move.piece.type === "King") {
+                if (move.piece === "King") {
                     kingPosition = [move.end[0], move.end[1]];
-                }   
+                }
                 player.makeTestMove(testBoard, move);
-                if (this.isLegalMove(testBoard, player.color, `${kingPosition[0]},${kingPosition[1]}`) && !move.piece.isCaptured) {
+                if (this.isLegalMove(testBoard, player.color, `${kingPosition[0]},${kingPosition[1]}`) ){
                     legalMoves.push(move);
                 }
             });
             allLegalMoves = allLegalMoves.concat(legalMoves);
+            player.moves = legalMoves;
             piece.moves = legalMoves;
         });
         return allLegalMoves;
@@ -704,10 +708,41 @@ export class AI extends Player {
 
     decideMove(game) {
         this.moves = game.legalMoves(this);
-        // console.log(this.moves, game.board.board)
         let move = this.moves[Math.floor(Math.random() * this.moves.length)];
-
+        let testBoard = new ChessBoard(game.whitePlayer.pieces.concat(game.blackPlayer.pieces));
+        // console.log(JSON.stringify(testBoard));
         return move;
+    }
+    minmax(game, alpha, beta, maximixingPlayer, depth) {
+        score = this.evaluateBoard(game.board.board);
+        if (depth == 0 || score == 100 || score == -100) {
+            return score;
+        }
+        
+        if (maximixingPlayer) {
+            let maxEval = -Infinity;
+            // let moves = game.legalMoves(this.turn);
+            let player = game.turn.color === 'white' ? this.whitePlayer : this.blackPlayer;
+            let testBoard = new ChessBoard(game.whitePlayer.pieces.concat(game.blackPlayer.pieces));
+            player.makeTestMove(testBoard, move);
+            // console.log(testBoard)
+
+
+
+
+            
+            return maxEval;
+        }
+        else {
+            let maxEval = Infinity;
+            let player = game.turn.color === 'white' ? this.blackPlayer : this.whitePlayer;
+            let moves = game.legalMoves(this.turn.color === 'white' ? this.blackPlayer : this.whitePlayer);
+            
+            return maxEval;
+        }
+    }
+
+    evaluateBoard(game) {
     }
 }
 
@@ -761,7 +796,7 @@ export class Piece {
                 if (newRow < 0 || newRow >= 8 || newCol < 0 || newCol >= 8) {
                     break;
                 } else if (board[newRow][newCol].type !== "Empty") {
-                    let move = new Move(piece, start, [newRow, newCol], false);
+                    let move = new Move(piece.type, start, [newRow, newCol], false);
                     if (board[newRow][newCol].color !== this.color){
                         moves.push(move);
                         this.targets.push(move);
@@ -773,7 +808,7 @@ export class Piece {
                     
                     break;
                 }
-                let move = new Move(piece, start, [newRow, newCol], false);
+                let move = new Move(piece.type, start, [newRow, newCol], false);
                 moves.push(move);
                 this.targets.push(move);
 
@@ -813,16 +848,16 @@ export class Pawn extends Piece {
 
         
         if (forward && board[forward[0]][forward[1]].type == 'Empty'){
-            moves.push(new Move(piece, start,[nextRow, col], false))
+            moves.push(new Move(piece.type, start,[nextRow, col], false))
 
             if (doubleStep && board[doubleStep[0]][doubleStep[1]].type == 'Empty' && this.firstMove) {
-                moves.push(new Move(piece, start, [doubleRow, col], false));
+                moves.push(new Move(piece.type, start, [doubleRow, col], false));
             }
         }
         if (leftCapture) {
-            let move = new Move(piece, start,[nextRow, leftCol], false);
+            let move = new Move(piece.type, start,[nextRow, leftCol], false);
             if (board[leftCapture[0]][leftCapture[1]].color != this.color && board[leftCapture[0]][leftCapture[1]].type !== 'Empty') {
-                let move = new Move(piece, start,[nextRow, leftCol], false);
+                let move = new Move(piece.type, start,[nextRow, leftCol], false);
                 moves.push(move);
                 this.targets.push(move);
             }
@@ -831,9 +866,9 @@ export class Pawn extends Piece {
             }
         }
         if (rightCapture) {
-            let move = new Move(piece, start,[nextRow, rightCol], false);
+            let move = new Move(piece.type, start,[nextRow, rightCol], false);
             if (board[rightCapture[0]][rightCapture[1]].color != this.color && board[rightCapture[0]][rightCapture[1]].type !== 'Empty') {
-                let move = new Move(piece, start,[nextRow, rightCol], false);
+                let move = new Move(piece.type, start,[nextRow, rightCol], false);
                 moves.push(move);
                 this.targets.push(move);
             }
@@ -849,11 +884,11 @@ export class Pawn extends Piece {
             let rightEnPassant = board[enPassantRow][rightCol];
 
             if (leftEnPassant && leftEnPassant.type == 'Pawn' && leftEnPassant.color !== this.color && leftEnPassant.justMoved) {
-                moves.push(new Move(piece, start, [enPassantMoveRow, leftCol], leftEnPassant.position));
+                moves.push(new Move(piece.type, start, [enPassantMoveRow, leftCol], leftEnPassant.position));
             }
 
             if (rightEnPassant && rightEnPassant.type == 'Pawn' && rightEnPassant.color !== this.color && rightEnPassant.justMoved) {
-                moves.push(new Move(piece, start, [enPassantMoveRow, rightCol], rightEnPassant.position));
+                moves.push(new Move(piece.type, start, [enPassantMoveRow, rightCol], rightEnPassant.position));
             }
         }
        
@@ -960,7 +995,7 @@ export class King extends Piece {
             }
             if (isSafe && board[row][col + i].type === "Rook" && board[row][col + i].color === this.color && board[row][col + i].firstMove) {
                 // check that intermediate squares are safe
-                moves.push(new Move(this.type, [row,col], [row, col + i - Math.floor(i/2)], new Move(board[row][col + i], [row, col + i], [row, col + 1], false)));
+                moves.push(new Move(this.type, [row,col], [row, col + i - Math.floor(i/2)], new Move(board[row][col + i].type, [row, col + i], [row, col + 1], false)));
             }
             // long castle
             let j = 1;
@@ -974,7 +1009,7 @@ export class King extends Piece {
             }        
             if (board[row][col - j].type === "Rook" && board[row][col - j].color === this.color && board[row][col - j].firstMove) {
                 //check that intermediate squares are safe
-                moves.push(new Move(this.type, [row,col], [row, col - j + Math.floor(j/2)], new Move(board[row][col - j], [row, col - j], [row, col - 1], false)));
+                moves.push(new Move(this.type, [row,col], [row, col - j + Math.floor(j/2)], new Move(board[row][col - j].type, [row, col - j], [row, col - 1], false)));
             }
         }
         
