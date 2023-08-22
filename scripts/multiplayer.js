@@ -3,7 +3,7 @@ import {ChessBoard, Piece, Pawn, Empty, Rook, Bishop, Queen, King, Knight, Move,
 document.addEventListener("DOMContentLoaded", () => {
     let white = new Player('player1', 'white');
     let black = new Player('player2', 'black');
-    let game = new Game(white, black);
+    let game = new Game(white, black, 'multiplayer');
     game.startGame(white);
 });
 

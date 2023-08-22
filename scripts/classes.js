@@ -304,13 +304,36 @@ export class Game {
         element.style.display = "none";
         this.multiplayerGameLoop(); // start the game loop
     }
+
+    houseKeeping() {
+        this.board.updateTargetedSquares();
+        let nextTurn = this.turn.color === this.whitePlayer.color ? this.blackPlayer : this.whitePlayer;
+        this.isCheck(this.board, this.turn.color);
+
+        if (this.legalMoves(nextTurn).length === 0) {
+            if(this.isCheck(this.board, this.turn.color)) {
+                this.isCheckmate = true;
+                this.isOver = true;
+                this.checkmate(this.turn.color);
+            }
+            else {
+                this.isDraw = true;
+                this.isOver = true;
+                this.draw();
+            }
+        }
+        
+        this.board.updateTargetedSquares();
+        
+        this.board.removeAllHighlights();
+        this.turn = this.turn.color === "white" ? this.blackPlayer : this.whitePlayer;
+        }
     
     async multiplayerGameLoop() {
         while (!this.isOver) {
-            if (this.turn) {
-                let move = await this.waitForPlayerMove(this);
-                this.makeMove(move);
-            } 
+            let move = this.turn instanceof AI ? this.turn.decideMove(this) : await this.waitForPlayerMove(this);
+            this.makeMove(move);
+            this.houseKeeping();
         }
     }
     
@@ -351,7 +374,7 @@ export class Game {
         document.getElementById('promotion-modal').style.display = 'flex';
     }   
   
-    makeMove(move) {
+    async makeMove(move) {
         let start = move.start;
         let end = move.end;
         let board = this.board.board;
@@ -360,15 +383,20 @@ export class Game {
         if ((end[0] == 0 || end[0] == 7) && board[start[0]][start[1]].type === 'Pawn') {
             let id = 'promotion-modal-' + board[start[0]][start[1]].color;
             document.getElementById(id).style.display = 'flex';
-            document.getElementById(id).addEventListener('click', (e) => {
-                board[end[0]][end[1]].isCaptured = true;
-                board[end[0]][end[1]] = board[end[0]][end[1]].promote(e.target.id, game);
-
-                this.makeMove(new Move(board[end[0]][end[1]], end, end));
-                board[end[0]][end[1]].promoted = false;
-                document.getElementById(id).style.display = 'none';
+        
+            await new Promise(resolve => {
+                document.getElementById(id).addEventListener('click', (e) => {
+                    board[end[0]][end[1]].isCaptured = true;
+                    board[end[0]][end[1]] = board[end[0]][end[1]].promote(e.target.id, this);
+        
+                    this.makeMove(new Move(board[end[0]][end[1]], end, end));
+                    board[end[0]][end[1]].promoted = false;
+                    document.getElementById(id).style.display = 'none';
+                    resolve(); // Resolve the promise, allowing code execution to continue
+                });
             });
-        } 
+        }
+        
 
         if(move.exception && move.piece.type === "Pawn") {
             board[move.exception[0]][move.exception[1]].isCaptured = true;
@@ -399,7 +427,7 @@ export class Game {
         board[start[0]][start[1]] = new Empty(start);
         board[end[0]][end[1]] = piece;
         piece.position = end;
-    
+        
 
         let element = document.getElementById(ChessBoard.indicesToCoords(start)).querySelector('img')
         if (element) {
@@ -422,23 +450,6 @@ export class Game {
 
         document.getElementById(ChessBoard.indicesToCoords(end)).classList.add('lastmove');
         document.getElementById(ChessBoard.indicesToCoords(start)).classList.add('lastmove');
-
-        this.board.updateTargetedSquares();
-        let nextTurn = this.turn.color === this.whitePlayer.color ? this.blackPlayer : this.whitePlayer;
-        this.isCheck(this.board, this.turn.color);
-
-        if (this.legalMoves(nextTurn).length === 0) {
-            if(this.isCheck(this.board, this.turn.color)) {
-                this.isCheckmate = true;
-                this.isOver = true;
-                this.checkmate(this.turn.color);
-            }
-            else {
-                this.isDraw = true;
-                this.isOver = true;
-                this.draw();
-            }
-        }
         if (move.exception) {
             // if (move.piece === "Pawn") {
             //     board[move.exception[0]][move.exception[1]].isCaptured = true;
@@ -452,12 +463,7 @@ export class Game {
                 this.makeMove(move.exception);
             }
         }
-        this.board.updateTargetedSquares();
-        
         this.moves.push(move);
-        this.board.removeAllHighlights();
-        this.turn = this.turn.color === "white" ? this.blackPlayer : this.whitePlayer;
-
     }
   
     checkmate(color) {
@@ -481,8 +487,8 @@ export class Game {
             element.innerHTML = '<p id="end-message"></p>   <button id="startNewGame">New Game</button>';
             element.parentElement.style.display = 'none';
             let white = new Player('player1', 'white');
-            let black = new Player('player2', 'black');
-            let game = new Game(white, black);
+            let black = this.mode === 'singleplayer' ? new AI('computer', 'black') : new Player('player2', 'black');
+            let game = new Game(white, black, this.mode);
             game.startGame(white);
         });
     }
@@ -676,10 +682,11 @@ export class AI extends Player {
         this.difficulty = difficulty;        
     }
 
-    decideMove() {
-        let legalMoves = this.legalMoves(this);
-        let move = legalMoves[Math.floor(Math.random() * legalMoves.length)];
-        this.makeMove(move);
+    decideMove(game) {
+        this.moves = game.legalMoves(this);
+        let move = this.moves[Math.floor(Math.random() * this.moves.length)];
+        console.log(move);
+        return move;
     }
 }
 
