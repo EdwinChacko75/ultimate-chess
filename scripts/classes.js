@@ -332,7 +332,7 @@ export class Game {
     async multiplayerGameLoop() {
         while (!this.isOver) {
             let move = this.turn instanceof AI ? this.turn.decideMove(this) : await this.waitForPlayerMove(this);
-            this.makeMove(move);
+            await this.makeMove(move);
             this.houseKeeping();
         }
     }
@@ -421,25 +421,31 @@ export class Game {
             }
         }
 
-        if ((end[0] == 0 || end[0] == 7) && board[start[0]][start[1]].type === 'Pawn') {
-            let id = 'promotion-modal-' + board[start[0]][start[1]].color;
+        if ((end[0] == 0 || end[0] == 7) && piece.type === 'Pawn') {
+            let id = 'promotion-modal-' + piece.color;
             document.getElementById(id).style.display = 'flex';
         
             await new Promise(resolve => {
                 document.getElementById(id).addEventListener('click', (e) => {
-                    board[start[0]][start[1]].isCaptured = true;
                     if (board[end[0]][end[1]].type !== "Empty") {
                         board[end[0]][end[1]].isCaptured = true;
                     }
-                    board[end[0]][end[1]] = board[start[0]][start[1]].promote(e.target.id, this);
+                    board[end[0]][end[1]] = piece.promote(e.target.id, this);
                     board[end[0]][end[1]].position = end;
                     board[end[0]][end[1]].promoted = false;
-
+                    
+                    let startingImage = document.getElementById(startCoords).querySelector('img');
+                    if (startingImage) {
+                        startingImage.remove();
+                    }
                     board[start[0]][start[1]] = new Empty(start);
 
-                    document.getElementById(startCoords).querySelector('img').remove();
                     let newPieceLi = document.getElementById(endCoords);
-                    newPieceLi.querySelector('img').remove();
+                    let newPiece = newPieceLi.querySelector('img');
+                    if (newPiece) {
+                        newPiece.remove();
+                    }
+
                     newPieceLi.innerHTML += '<img class="pieces '+ board[end[0]][end[1]].type + '" src="../img/chesspieces/wikipedia/'+ board[end[0]][end[1]].color + board[end[0]][end[1]].type +'.png">';
                     document.getElementById(id).style.display = 'none';
 
