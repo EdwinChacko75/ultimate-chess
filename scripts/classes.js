@@ -15,7 +15,6 @@ export class ChessBoard {
             }
             this.board.push(row);
         }
-
         
         initialPieces.forEach(piece => {
 
@@ -334,6 +333,7 @@ export class Game {
             let move = this.turn instanceof AI ? this.turn.decideMove(this) : await this.waitForPlayerMove(this);
             await this.makeMove(move);
             this.houseKeeping();
+            // console.log(this)
         }
     }
     
@@ -357,15 +357,7 @@ export class Game {
         });
     }
     
-    
-    startComputerGame(turn) {
-        this.board.createChessBoard(this);
-        const boardElement = document.getElementById("board");
-        boardElement.removeEventListener('click', turn.decideMove.bind(this));
-        boardElement.addEventListener('click', turn.decideMove.bind(this));
-        let element = document.getElementById("game-over");
-        element.style.display = "none";
-    }
+
     closeModal() {
         document.getElementById('promotion-modal').style.display = 'none';
     }
@@ -426,10 +418,11 @@ export class Game {
             document.getElementById(id).style.display = 'flex';
         
             await new Promise(resolve => {
-                document.getElementById(id).addEventListener('click', (e) => {
+                const onClick = (e) => {
                     if (board[end[0]][end[1]].type !== "Empty") {
                         board[end[0]][end[1]].isCaptured = true;
                     }
+
                     board[end[0]][end[1]] = piece.promote(e.target.id, this);
                     board[end[0]][end[1]].position = end;
                     board[end[0]][end[1]].promoted = false;
@@ -438,20 +431,22 @@ export class Game {
                     if (startingImage) {
                         startingImage.remove();
                     }
+                    piece.isCaptured = true;
                     board[start[0]][start[1]] = new Empty(start);
-
+            
                     let newPieceLi = document.getElementById(endCoords);
                     let newPiece = newPieceLi.querySelector('img');
                     if (newPiece) {
                         newPiece.remove();
                     }
-
+            
                     newPieceLi.innerHTML += '<img class="pieces '+ board[end[0]][end[1]].type + '" src="../img/chesspieces/wikipedia/'+ board[end[0]][end[1]].color + board[end[0]][end[1]].type +'.png">';
                     document.getElementById(id).style.display = 'none';
-
-                    resolve(); 
-                });
-            });
+                    document.getElementById(id).removeEventListener('click', onClick);
+                    resolve();
+                };
+                document.getElementById(id).addEventListener('click', onClick);
+            });            
         }
         else {
             if (board[end[0]][end[1]].type !== "Empty" && !board[end[0]][end[1]].promoted) {
@@ -599,6 +594,7 @@ export class Game {
                     return null;
                 }).filter(piece => piece !== null);
                 let testBoard = new ChessBoard(allPieces);
+                // console.log(testBoard)
                 if (move.piece.type === "King") {
                     kingPosition = [move.end[0], move.end[1]];
                 }   
@@ -712,6 +708,7 @@ export class AI extends Player {
 
     decideMove(game) {
         this.moves = game.legalMoves(this);
+        // console.log(this.moves, game.board.board)
         let move = this.moves[Math.floor(Math.random() * this.moves.length)];
 
         return move;
