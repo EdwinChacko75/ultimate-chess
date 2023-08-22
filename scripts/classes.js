@@ -379,24 +379,8 @@ export class Game {
         let end = move.end;
         let board = this.board.board;
         let piece = board[start[0]][start[1]];
-
-        if ((end[0] == 0 || end[0] == 7) && board[start[0]][start[1]].type === 'Pawn') {
-            let id = 'promotion-modal-' + board[start[0]][start[1]].color;
-            document.getElementById(id).style.display = 'flex';
-        
-            await new Promise(resolve => {
-                document.getElementById(id).addEventListener('click', (e) => {
-                    board[end[0]][end[1]].isCaptured = true;
-                    board[end[0]][end[1]] = board[end[0]][end[1]].promote(e.target.id, this);
-        
-                    this.makeMove(new Move(board[end[0]][end[1]], end, end));
-                    board[end[0]][end[1]].promoted = false;
-                    document.getElementById(id).style.display = 'none';
-                    resolve(); // Resolve the promise, allowing code execution to continue
-                });
-            });
-        }
-        
+        let startCoords = ChessBoard.indicesToCoords(start);
+        let endCoords = ChessBoard.indicesToCoords(end);
 
         if(move.exception && move.piece.type === "Pawn") {
             board[move.exception[0]][move.exception[1]].isCaptured = true;
@@ -414,6 +398,7 @@ export class Game {
                 }
             }
         }
+
         for (let i = 0; i < 8; i++) {
             for (let j = 0; j < 8 ; j++) {
                 if (i === start[0] && j === start[1])
@@ -421,35 +406,7 @@ export class Game {
                 board[i][j].justMoved = false;
             }
         }
-        if (board[end[0]][end[1]].type !== "Empty" && !board[end[0]][end[1]].promoted) {
-            board[end[0]][end[1]].isCaptured = true;
-        }
-        board[start[0]][start[1]] = new Empty(start);
-        board[end[0]][end[1]] = piece;
-        piece.position = end;
-        
 
-        let element = document.getElementById(ChessBoard.indicesToCoords(start)).querySelector('img')
-        if (element) {
-            element.remove();
-        }
-        element = document.getElementById(ChessBoard.indicesToCoords(end)).querySelector('img')
-        if (element){
-            element.remove();
-        }
-
-        document.getElementById(ChessBoard.indicesToCoords(end)).innerHTML += '<img class="pieces '+ board[end[0]][end[1]].type + '" src="../img/chesspieces/wikipedia/'+ piece.color + board[end[0]][end[1]].type +'.png">';
-        
-        
-        element = document.querySelectorAll('.lastmove');
-        if (element) {
-            element.forEach((el) => {
-                el.classList.remove('lastmove');
-            });
-        }
-
-        document.getElementById(ChessBoard.indicesToCoords(end)).classList.add('lastmove');
-        document.getElementById(ChessBoard.indicesToCoords(start)).classList.add('lastmove');
         if (move.exception) {
             // if (move.piece === "Pawn") {
             //     board[move.exception[0]][move.exception[1]].isCaptured = true;
@@ -463,6 +420,71 @@ export class Game {
                 this.makeMove(move.exception);
             }
         }
+
+        if ((end[0] == 0 || end[0] == 7) && board[start[0]][start[1]].type === 'Pawn') {
+            let id = 'promotion-modal-' + board[start[0]][start[1]].color;
+            document.getElementById(id).style.display = 'flex';
+        
+            await new Promise(resolve => {
+                document.getElementById(id).addEventListener('click', (e) => {
+                    board[start[0]][start[1]].isCaptured = true;
+                    if (board[end[0]][end[1]].type !== "Empty") {
+                        board[end[0]][end[1]].isCaptured = true;
+                    }
+                    board[end[0]][end[1]] = board[start[0]][start[1]].promote(e.target.id, this);
+                    board[end[0]][end[1]].position = end;
+                    board[end[0]][end[1]].promoted = false;
+
+                    board[start[0]][start[1]] = new Empty(start);
+
+                    document.getElementById(startCoords).querySelector('img').remove();
+                    let newPieceLi = document.getElementById(endCoords);
+                    newPieceLi.querySelector('img').remove();
+                    newPieceLi.innerHTML += '<img class="pieces '+ board[end[0]][end[1]].type + '" src="../img/chesspieces/wikipedia/'+ board[end[0]][end[1]].color + board[end[0]][end[1]].type +'.png">';
+                    document.getElementById(id).style.display = 'none';
+
+                    resolve(); 
+                });
+            });
+        }
+        else {
+            if (board[end[0]][end[1]].type !== "Empty" && !board[end[0]][end[1]].promoted) {
+                board[end[0]][end[1]].isCaptured = true;
+            }
+            
+            board[start[0]][start[1]] = new Empty(start);
+            board[end[0]][end[1]] = piece;
+            piece.position = end;
+            
+            let element = document.getElementById(startCoords).querySelector('img')
+            if (element) {
+                element.remove();
+            }
+            element = document.getElementById(endCoords).querySelector('img')
+            if (element){
+                element.remove();
+            }
+    
+            document.getElementById(endCoords).innerHTML += '<img class="pieces '+ board[end[0]][end[1]].type + '" src="../img/chesspieces/wikipedia/'+ piece.color + board[end[0]][end[1]].type +'.png">';
+            
+            element = document.querySelectorAll('.lastmove');
+            if (element) {
+                element.forEach((el) => {
+                    el.classList.remove('lastmove');
+                });
+            }
+        }      
+        
+        let element = document.querySelectorAll('.lastmove');
+        if (element) {
+            element.forEach((el) => {
+                el.classList.remove('lastmove');
+            });
+        }
+        
+        document.getElementById(endCoords).classList.add('lastmove');
+        document.getElementById(startCoords).classList.add('lastmove');
+
         this.moves.push(move);
     }
   
@@ -685,7 +707,7 @@ export class AI extends Player {
     decideMove(game) {
         this.moves = game.legalMoves(this);
         let move = this.moves[Math.floor(Math.random() * this.moves.length)];
-        console.log(move);
+
         return move;
     }
 }
