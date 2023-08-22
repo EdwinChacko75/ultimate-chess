@@ -50,7 +50,7 @@ export class ChessBoard {
         let indices = ChessBoard.coordsToIndices(clickedElement.parentNode.id);
 
 
-        if (indices.length === 2 && board[indices[0]][indices[1]].color !== turn.color && !clickedElement.parentNode.classList.contains('newhighlight')) {
+        if (indices.length === 2 && board[indices[0]][indices[1]].color !== turn.color && !clickedElement.parentNode.classList.contains('displayedMoves')) {
             chessBoard.removeAllHighlights();
         }
         var squares = document.querySelectorAll('.square');
@@ -67,7 +67,7 @@ export class ChessBoard {
                 }
             });
         }
-        else if (clickedElement.tagName === 'IMG' && !clickedElement.parentNode.classList.contains('newhighlight')) {
+        else if (clickedElement.tagName === 'IMG' && !clickedElement.parentNode.classList.contains('displayedMoves')) {
             clickedElement = clickedElement.parentNode;
             var squares = document.querySelectorAll('.square');
             if (!clickedElement.classList.contains('selected')) {
@@ -108,7 +108,7 @@ export class ChessBoard {
                 chessBoard.removeAllHighlights();
                 moves.forEach(move => {
                     let square = document.getElementById(ChessBoard.indicesToCoords(move.end));
-                    square.classList.add('newhighlight');
+                    square.classList.add('displayedMoves');
                 });
             }
             else if (clickedElement.classList.contains('selected')) {
@@ -181,17 +181,18 @@ export class ChessBoard {
         });
     }
 
-    removeNewHighlights() {
-        var newHighlights = document.querySelectorAll('.newhighlight');
+    removeMoveHighlights() {
+        var newHighlights = document.querySelectorAll('.displayedMoves');
         newHighlights.forEach(newHighlight => {
-            newHighlight.classList.remove('newhighlight');
+            newHighlight.classList.remove('displayedMoves');
         });
     }
 
     removeAllHighlights() {
         this.removeHighlights();
-        this.removeNewHighlights();
+        this.removeMoveHighlights();
     }
+
     flipBoard(color) {
         this.color = this.color == 'black' ? 'white' : "black";
 
@@ -209,8 +210,6 @@ export class ChessBoard {
         c = -c; 
         this.createChessBoard(this.board, this.color);
         
-
-
         const boardElement = document.getElementById("board");
         boardElement.removeEventListener('click', ChessBoard.handleBoardClick.bind(this));
         boardElement.addEventListener('click', ChessBoard.handleBoardClick.bind(this));
@@ -270,7 +269,7 @@ export class ChessBoard {
                     const isSelectedClassPresent = [...squares].some(square => square.classList.contains('selected'));
                     if (isSelectedClassPresent) {
                         squares.forEach(square => {
-                            square.classList.remove('newhighlight');
+                            square.classList.remove('displayedMoves');
                             square.classList.remove('selected');
                         });
                     }
@@ -326,6 +325,9 @@ export class Game {
         
         this.board.removeAllHighlights();
         this.turn = this.turn.color === "white" ? this.blackPlayer : this.whitePlayer;
+        document.querySelectorAll('.selected').forEach((el) => {
+            el.classList.remove('selected');
+        });
         }
     
     async multiplayerGameLoop() {
@@ -347,7 +349,7 @@ export class Game {
                     return;
                 }
 
-                if (event.target.classList.contains('newhighlight') || event.target.parentNode.classList.contains('newhighlight')) {
+                if (event.target.classList.contains('displayedMoves') || event.target.parentNode.classList.contains('displayedMoves')) {
                     boardElement.removeEventListener('click', onClick);
                     resolve(move);
                 }
@@ -357,14 +359,6 @@ export class Game {
         });
     }
     
-
-    closeModal() {
-        document.getElementById('promotion-modal').style.display = 'none';
-    }
-    
-    openModal() {
-        document.getElementById('promotion-modal').style.display = 'flex';
-    }   
   
     async makeMove(move) {
         let start = move.start;
@@ -419,6 +413,10 @@ export class Game {
         
             await new Promise(resolve => {
                 const onClick = (e) => {
+                    if (e.target.id === 'cancel'){
+                        document.getElementById(id).style.display = 'none';
+                        resolve();
+                    }
                     if (board[end[0]][end[1]].type !== "Empty") {
                         board[end[0]][end[1]].isCaptured = true;
                     }
@@ -608,8 +606,6 @@ export class Game {
         });
         return allLegalMoves;
     }
-
-    
 }
 
 export class Player {
