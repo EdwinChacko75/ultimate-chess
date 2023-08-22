@@ -286,16 +286,56 @@ export class ChessBoard {
 }
 
 export class Game {
-    constructor(whitePlayer, blackPlayer) {
+    constructor(whitePlayer, blackPlayer, mode) {
         this.whitePlayer = whitePlayer;
         this.blackPlayer = blackPlayer;
+        this.mode = mode;
         this.board = new ChessBoard(whitePlayer.pieces.concat(blackPlayer.pieces));
         this.turn = whitePlayer;
         this.moves = [];
-        this.isOver = false;
-        
+        this.isOver = false;        
     }
+    
     startGame(turn) {
+        this.board.createChessBoard(this);
+        const boardElement = document.getElementById("board");
+        // boardElement.removeEventListener('click', turn.decideMove.bind(this));
+        let element = document.getElementById("game-over");
+        element.style.display = "none";
+        this.multiplayerGameLoop(); // start the game loop
+    }
+    
+    async multiplayerGameLoop() {
+        while (!this.isOver) {
+            if (this.turn) {
+                let move = await this.waitForPlayerMove(this);
+                this.makeMove(move);
+            } 
+        }
+    }
+    
+    waitForPlayerMove(game) {
+        return new Promise(resolve => {
+            const boardElement = document.getElementById("board");
+            const onClick = (event) => {
+                let move = game.turn.decideMove(event, game);
+
+                if (move === null) {
+                    return;
+                }
+
+                if (event.target.classList.contains('newhighlight') || event.target.parentNode.classList.contains('newhighlight')) {
+                    boardElement.removeEventListener('click', onClick);
+                    resolve(move);
+                }
+            };
+
+            boardElement.addEventListener('click', onClick);
+        });
+    }
+    
+    
+    startComputerGame(turn) {
         this.board.createChessBoard(this);
         const boardElement = document.getElementById("board");
         boardElement.removeEventListener('click', turn.decideMove.bind(this));
@@ -316,6 +356,19 @@ export class Game {
         let end = move.end;
         let board = this.board.board;
         let piece = board[start[0]][start[1]];
+
+        if ((end[0] == 0 || end[0] == 7) && board[start[0]][start[1]].type === 'Pawn') {
+            let id = 'promotion-modal-' + board[start[0]][start[1]].color;
+            document.getElementById(id).style.display = 'flex';
+            document.getElementById(id).addEventListener('click', (e) => {
+                board[end[0]][end[1]].isCaptured = true;
+                board[end[0]][end[1]] = board[end[0]][end[1]].promote(e.target.id, game);
+
+                this.makeMove(new Move(board[end[0]][end[1]], end, end));
+                board[end[0]][end[1]].promoted = false;
+                document.getElementById(id).style.display = 'none';
+            });
+        } 
 
         if(move.exception && move.piece.type === "Pawn") {
             board[move.exception[0]][move.exception[1]].isCaptured = true;
@@ -386,6 +439,25 @@ export class Game {
                 this.draw();
             }
         }
+        if (move.exception) {
+            // if (move.piece === "Pawn") {
+            //     board[move.exception[0]][move.exception[1]].isCaptured = true;
+            //     let element = document.getElementById(ChessBoard.indicesToCoords(move.exception)).querySelector('img')
+            //     if(element){
+            //         element.remove();
+            //     };
+            // }
+            // else 
+            if (move.piece === "King") {
+                this.makeMove(move.exception);
+            }
+        }
+        this.board.updateTargetedSquares();
+        
+        this.moves.push(move);
+        this.board.removeAllHighlights();
+        this.turn = this.turn.color === "white" ? this.blackPlayer : this.whitePlayer;
+
     }
   
     checkmate(color) {
@@ -540,9 +612,7 @@ export class Player {
             new Pawn(color, [j, 7])
         ];
     }
-    undoTestMove(chessBoard, move, affectedPieces, initialAttributes) {
-        
-    }
+    
     makeTestMove(chessBoard, move) {
         let start = move.start;
         let end = move.end;
@@ -577,59 +647,40 @@ export class Player {
         chessBoard.updateTargetedSquares();
     }
 
-    decideMove(event) {
+    decideMove(event, game) {
         event.stopPropagation();
         let clickedElement = event.target;
-        let chessBoard = this.board;
-        let board = this.board.board;
-        let turn = this.turn;
-        
-        if (clickedElement.classList.contains('newhighlight') || clickedElement.parentNode.classList.contains('newhighlight')) {
-            let start = ChessBoard.coordsToIndices(document.querySelector('.selected').id);
-            let end = clickedElement.id ? ChessBoard.coordsToIndices(clickedElement.id) : ChessBoard.coordsToIndices(clickedElement.parentNode.id);
-            let moves = board[start[0]][start[1]].moves;
-            let move = moves.find(move => move.end[0] == end[0] && move.end[1] == end[1]);
-
-            if ((end[0] == 0 || end[0] == 7) && board[start[0]][start[1]].type === 'Pawn') {
-                let id = 'promotion-modal-' + board[start[0]][start[1]].color;
-                document.getElementById(id).style.display = 'flex';
-                document.getElementById(id).addEventListener('click', (e) => {
-                    board[end[0]][end[1]].isCaptured = true;
-                    board[end[0]][end[1]] = board[end[0]][end[1]].promote(e.target.id, this);
-
-                    this.makeMove(new Move(board[end[0]][end[1]], end, end));
-                    board[end[0]][end[1]].promoted = false;
-                    document.getElementById(id).style.display = 'none';
-                });
-            } 
-
-            this.makeMove(move);
-
-            if (move.exception) {
-                // if (move.piece === "Pawn") {
-                //     board[move.exception[0]][move.exception[1]].isCaptured = true;
-                //     let element = document.getElementById(ChessBoard.indicesToCoords(move.exception)).querySelector('img')
-                //     if(element){
-                //         element.remove();
-                //     };
-                // }
-                // else 
-                if (move.piece === "King") {
-                    this.makeMove(move.exception);
-                }
-            }
-            chessBoard.updateTargetedSquares();
-            
-            this.moves.push(move);
-            chessBoard.removeAllHighlights();
-            this.turn = this.turn.color === "white" ? this.blackPlayer : this.whitePlayer;
+        let chessBoard = game.board;
+        let board = game.board.board;
+        let turn = game.turn;
+        if (document.querySelector('.selected') === null) {
+            return null;
         }
+        let start = ChessBoard.coordsToIndices(document.querySelector('.selected').id);
+        let end = clickedElement.id ? ChessBoard.coordsToIndices(clickedElement.id) : ChessBoard.coordsToIndices(clickedElement.parentNode.id);
+        let moves = board[start[0]][start[1]].moves;
+        let move = moves.find(move => move.end[0] == end[0] && move.end[1] == end[1]);
+
+        return move;
     }  
 
     kingPosition() {
         let king = this.pieces.find(piece => piece.type === 'King');
         return king.position;
     }  
+}
+
+export class AI extends Player {
+    constructor(name, color, difficulty) {
+        super(name, color);
+        this.difficulty = difficulty;        
+    }
+
+    decideMove() {
+        let legalMoves = this.legalMoves(this);
+        let move = legalMoves[Math.floor(Math.random() * legalMoves.length)];
+        this.makeMove(move);
+    }
 }
 
 export class Piece {
@@ -931,4 +982,3 @@ export class Move {
         this.type = 'Capture';
     }
 }
-
