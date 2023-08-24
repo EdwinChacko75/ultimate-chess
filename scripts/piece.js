@@ -302,7 +302,7 @@ export class King extends Piece {
         
         // console.log(this.color, opponentMoves)
         if (opponentMoves === undefined) {
-            console.log('opponent moves undefined')
+            // console.log('opponent moves undefined')
             return true;
         }
         return !opponentMoves.some(move => 

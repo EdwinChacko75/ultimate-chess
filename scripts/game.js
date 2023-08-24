@@ -28,7 +28,6 @@ export class Game {
         let nextTurn = this.turn.color === this.whitePlayer.color ? 'black' : 'white';
         this.board.updateTargetedSquares();
 
-        console.log(Game.legalMoves(Game.allPieces(this), nextTurn))
         if (Game.legalMoves(Game.allPieces(this), nextTurn).length === 0) {
             if(this.isCheck(this.board, this.turn.color)) {
                 this.isCheckmate = true;
@@ -57,7 +56,9 @@ export class Game {
             let move = this.turn instanceof AI ? this.turn.decideMove(this) : await this.waitForPlayerMove(this);
             await this.makeMove(move);
             await this.houseKeeping();
-            console.log(this.blackPlayer.counter)
+            if (!(this.turn instanceof AI)) {
+                console.log(`The AI examined ${this.blackPlayer.counter} positions!`)
+            }
             this.blackPlayer.counter = 0;
         }
     }
@@ -317,7 +318,7 @@ export class Game {
                 piece.moves = [];
             }
         });
-        console.log(allMoves)
+
         allMoves.forEach((move) => {
             let clonedPieces = allPieces.map(Game.clonePiece).filter(piece => piece !== null);
 
