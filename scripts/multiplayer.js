@@ -1,4 +1,6 @@
-import {ChessBoard, Piece, Pawn, Empty, Rook, Bishop, Queen, King, Knight, Move, Game, Player} from "./classes.js";
+import {Game} from "./game.js";
+import {Player} from "./player.js";
+
 
 document.addEventListener("DOMContentLoaded", () => {
     let white = new Player('player1', 'white');

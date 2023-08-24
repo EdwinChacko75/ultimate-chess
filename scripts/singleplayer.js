@@ -1,8 +1,9 @@
-import {Game, Player, AI} from "./classes.js";
+import {Game} from "./game.js";
+import {Player, AI} from "./player.js";
 
 document.addEventListener("DOMContentLoaded", () => {
     let white = new Player('player1', 'white');
-    let black = new AI('player2', 'black', 1);
+    let black = new AI('player2', 'black', 2);
     let game = new Game(white, black, 'singleplayer');
     game.startGame(white);
 });
