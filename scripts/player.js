@@ -41,8 +41,11 @@ export class Player {
         let piece = board[start[0]][start[1]];
         let endPiece = board[end[0]][end[1]];
         let previousJustMoved = null;
+        let exception = false;
+        let previousFirstMove = false;
 
         if (piece.firstMove) {
+            previousFirstMove = true;
             piece.firstMove = false;
             if (piece.type === "Pawn") {
                 if (piece.justMoved){
@@ -71,9 +74,14 @@ export class Player {
         board[end[0]][end[1]] = piece;
         piece.position = end;
 
+        // move.exception is the final position, not a move object
+        // if (move.exception) {
+        //     exception = Player.makeTestMove(chessBoard, move.exception);
+        // }
+
         chessBoard.updateTargetedSquares();
 
-        return {endPiece, piece, previousJustMoved};
+        return {endPiece, piece, previousJustMoved, exception, previousFirstMove};
     }
     static undoTestMove(chessBoard, move, oldBoardState) {
         let board = chessBoard.board;
@@ -93,6 +101,14 @@ export class Player {
         if (oldBoardState.previousJustMoved !== null) {
             board[oldBoardState.previousJustMoved[0]][oldBoardState.previousJustMoved[1]].justMoved = true;
         }
+        if (oldBoardState.previousFirstMove) {
+            oldBoardState.piece.firstMove = true;
+        }
+        
+        // if (oldBoardState.exception) {
+        //     Player.undoTestMove(chessBoard, move.exception, oldBoardState.exception, oldBoardState.previousJustMoved);
+        // }
+
         chessBoard.updateTargetedSquares();
 
     }
@@ -124,6 +140,7 @@ export class AI extends Player {
         super(name, color);
         this.difficulty = difficulty;       
         this.counter = 0; 
+        this.pruned = 0;
     }
 
     decideMove(game) {
@@ -140,8 +157,9 @@ export class AI extends Player {
         this.counter++;
         let playerColor = maximizingPlayer ? game.turn.color : game.turn.color === 'white' ? 'black' : 'white';
         let score = this.evaluateBoard(board, playerColor, maximizingPlayer);
-        if (depth == 0 || score == 100 || score == -100 ) {
-            return { score, move: null };
+        
+        if (depth === 0 || score === 10000 || score === -10000) {
+            return { score: score, move: null };
         }
        
         let bestMove = null;
@@ -159,15 +177,13 @@ export class AI extends Player {
 
 
         for (let i = 0; i < moves.length; i++) {
-            // let clonedPieces = board.pieces.map(Game.clonePiece).filter(piece => piece !== null);
-            // let newBoard = new ChessBoard(clonedPieces);
-
-            // let oldBoardState = Player.makeTestMove(newBoard, moves[i]);
             let oldBoardState = Player.makeTestMove(testBoard, moves[i]);
-            // this.updateTestBoardPieces(newBoard);
             this.updateTestBoardPieces(testBoard);
+
             let evaluation = this.minimax(game, testBoard, alpha, beta, !maximizingPlayer, depth - 1);
-    
+            if (evaluation.move === null) {
+                evaluation.move = moves[i];
+            }
             if (maximizingPlayer) {
                 if (evaluation.score > bestScore) {
                     bestScore = evaluation.score;
@@ -183,6 +199,7 @@ export class AI extends Player {
             }
             Player.undoTestMove(testBoard, moves[i], oldBoardState);
             if (beta <= alpha) {
+                this.pruned++;
                 break;
             }
         }
@@ -193,6 +210,19 @@ export class AI extends Player {
     evaluateBoard(testBoard, playerColor, maximizingPlayer) {
         let board = testBoard.board;
         let score = 0;
+        let allPieces = testBoard.pieces;
+        
+        let kingPosition = Game.kingPosition(allPieces, playerColor);
+        let king = board[kingPosition[0]][kingPosition[1]];
+        
+        if (Game.legalMoves(allPieces, playerColor).length === 0) {
+            if(!king.isSafe(kingPosition, testBoard.whiteTargetedSquares, testBoard.blackTargetedSquares)) {
+                return maximizingPlayer ? -10000 : 10000;
+            }
+            else {
+                return 0;
+            }
+        }
 
         for (let row = 0; row < 8; row++) {
           for (let col = 0; col < 8; col++) {

@@ -81,7 +81,7 @@ export class Pawn extends Piece {
     constructor(color, position) {
         super('Pawn', color, position);
         this.justMoved = false;
-        this.value = 1;
+        this.value = 100;
     }
     getMoves(chessBoard) {
         this.targets = [];
@@ -190,7 +190,7 @@ export class Rook extends Piece {
     constructor(color, position) {
         super('Rook', color, position);
         this.directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
-        this.value = 5;
+        this.value = 525;
     }
     getMoves(chessBoard) {
         this.moves = this.getMovesFromDirection(chessBoard, this.directions);
@@ -201,7 +201,7 @@ export class Bishop extends Piece {
     constructor(color, position) {
         super('Bishop', color, position);
         this.directions = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
-        this.value = 3;
+        this.value = 350;
     }
     getMoves(chessBoard) {        
         this.moves = this.getMovesFromDirection(chessBoard, this.directions);
@@ -211,7 +211,7 @@ export class Knight extends Piece {
     constructor(color, position) {
         super('Knight', color, position);
         this.directions = [[2, 1], [1, 2], [-2, 1], [1, -2], [2, -1], [-2, -1], [-1, -2], [-1, 2]];
-        this.value = 3;
+        this.value = 350;
     }
     getMoves(chessBoard) {
         this.moves = this.getMovesFromDirection(chessBoard, this.directions);
@@ -221,7 +221,7 @@ export class Queen extends Piece {
     constructor(color, position) {
         super('Queen', color, position);
         this.directions = [[1, 1], [1, -1], [-1, 1], [-1, -1],[0, 1], [0, -1], [1, 0], [-1, 0]];
-        this.value = 9;
+        this.value = 1000;
     }
     getMoves(chessBoard) {
         this.moves = this.getMovesFromDirection(chessBoard, this.directions);  
@@ -234,7 +234,7 @@ export class King extends Piece {
     constructor(color, position) {
         super('King', color, position);
         this.directions = [[1, 1], [1, -1], [-1, 1], [-1, -1],[0, 1], [0, -1], [1, 0], [-1, 0]];
-        this.value = 100;
+        this.value = 10000;
     }
     getMoves(chessBoard) {
         
@@ -244,15 +244,7 @@ export class King extends Piece {
 
         let row = this.position[0];
         let col = this.position[1];
-        
-        // if the king hasnt moved and its not check
-        // let opponentMoves = this.color === 'white' ? chessBoard.blackTargetedSquares : chessBoard.whiteTargetedSquares;
-        // let pieceColor = board[row][col].color;
-        // let condition = this.isSafe([row, col], chessBoard);
-
-        // if (this.color === 'black') {
-        //     condition = !condition;
-        // }
+    
         let blackTargets = chessBoard.blackTargetedSquares;
         let whiteTargets = chessBoard.whiteTargetedSquares;
 
@@ -263,7 +255,6 @@ export class King extends Piece {
             while ((board[row][col + i].type === 'King' || board[row][col + i].type === "Empty") && col + i < 7) {
                 
                 if (!this.isSafe([row, col + i], whiteTargets, blackTargets)) {
-                    // console.log(chessBoard.blackTargetedSquares)
                     isSafe = false;
                     break;
                 }
@@ -300,9 +291,7 @@ export class King extends Piece {
             opponentMoves = whiteTargets;
         }
         
-        // console.log(this.color, opponentMoves)
         if (opponentMoves === undefined) {
-            // console.log('opponent moves undefined')
             return true;
         }
         return !opponentMoves.some(move => 

@@ -11,25 +11,46 @@ export class Game {
         this.board = new ChessBoard(whitePlayer.pieces.concat(blackPlayer.pieces));
         this.turn = whitePlayer;
         this.moves = [];
-        this.isOver = false;        
+        this.isOver = false; 
+        this.difficulty;
+        this.moveCounter = 0;
     }
     static allPieces(game) {
         return game.whitePlayer.pieces.concat(game.blackPlayer.pieces);
     }
     startGame(turn) {
         this.board.createChessBoard(this);
-        const boardElement = document.getElementById("board");
         let element = document.getElementById("game-over");
         element.style.display = "none";
-        this.GameLoop(); 
+        this.gameLoop();
     }
 
+    async gameLoop() {
+        while (!this.isOver) {             
+            let move = this.turn instanceof AI ? this.turn.decideMove(this) : await this.waitForPlayerMove(this);
+            await this.makeMove(move);
+            await this.houseKeeping();
+            if (!(this.turn instanceof AI)) {
+                console.log(`The AI examined ${this.blackPlayer.counter} positions, pruned ${this.blackPlayer.pruned} branches.`)
+            }
+            this.blackPlayer.counter = 0;
+            this.blackPlayer.pruned = 0;
+        }
+        if (this.isOver) {
+            setTimeout(() => this.gameLoop(), 0);
+            
+            return;
+        }  
+    }
+    
     async houseKeeping() {
-        let nextTurn = this.turn.color === this.whitePlayer.color ? 'black' : 'white';
+        let nextTurnColor = this.turn.color === this.whitePlayer.color ? 'black' : 'white';
         this.board.updateTargetedSquares();
-
-        if (Game.legalMoves(Game.allPieces(this), nextTurn).length === 0) {
-            if(this.isCheck(this.board, this.turn.color)) {
+        let kingPosition = Game.kingPosition(this.board.pieces, nextTurnColor);
+        let king = this.board.board[kingPosition[0]][kingPosition[1]];
+        
+        if (Game.legalMoves(Game.allPieces(this), nextTurnColor).length === 0) {
+            if(!king.isSafe(kingPosition, this.board.whiteTargetedSquares, this.board.blackTargetedSquares)) {
                 this.isCheckmate = true;
                 this.isOver = true;
                 this.checkmate(this.turn.color);
@@ -48,21 +69,11 @@ export class Game {
         document.querySelectorAll('.selected').forEach((el) => {
             el.classList.remove('selected');
         });
+        this.moveCounter += 1;
         await new Promise(resolve => setTimeout(resolve, 0));
+        
     }
-    
-    async GameLoop() {
-        while (!this.isOver) {
-            let move = this.turn instanceof AI ? this.turn.decideMove(this) : await this.waitForPlayerMove(this);
-            await this.makeMove(move);
-            await this.houseKeeping();
-            if (!(this.turn instanceof AI)) {
-                console.log(`The AI examined ${this.blackPlayer.counter} positions!`)
-            }
-            this.blackPlayer.counter = 0;
-        }
-    }
-    
+
     waitForPlayerMove(game) {
         return new Promise(resolve => {
             const boardElement = document.getElementById("board");
@@ -83,8 +94,8 @@ export class Game {
         });
     }
     
-  
     async makeMove(move) {
+        
         let start = move.start;
         let end = move.end;
         let board = this.board.board;
@@ -213,51 +224,14 @@ export class Game {
         let messageElement = document.getElementById('end-message');
         messageElement.innerHTML =  color + ' wins by <br> checkmate!';
         element.style.display = 'flex';
-        this.listenForNewGame();
     }
     draw() {
         let element = document.getElementById('game-over');
         let messageElement = document.getElementById('end-message');
         messageElement.innerHTML = 'Draw by stalemate!';
         element.style.display = 'flex';
-        this.listenForNewGame();
     }
-    listenForNewGame() {
-        document.getElementById('startNewGame').addEventListener('click', () => {
-            let element = document.getElementById('game-over-background');
-            element.innerHTML = '<p id="end-message"></p>   <button id="startNewGame">New Game</button>';
-            element.parentElement.style.display = 'none';
-            let white = new Player('player1', 'white');
-            let black = this.mode === 'singleplayer' ? new AI('computer', 'black') : new Player('player2', 'black');
-            let game = new Game(white, black, this.mode);
-            game.startGame(white);
-        });
-    }
-    isCheck(chessboard, color) {
-        chessboard.updateTargetedSquares();
-        if (color === "white") {
-            let targetedSquares = chessboard.whiteTargetedSquares.map((move) => {
-                return move.end[0] + "," + move.end[1];
-            });
-            let kingPosition = this.blackPlayer.kingPosition();
-            kingPosition = kingPosition[0] + "," + kingPosition[1];
-            if (targetedSquares.includes(kingPosition)) {
-                this.blackPlayer.isInCheck = true;
-                return true;
-            }
-        } else {
-            let targetedSquares = this.board.blackTargetedSquares.map((move) => {
-                return move.end[0] + "," + move.end[1];
-            });
-            let kingPosition = this.whitePlayer.kingPosition();
-            kingPosition = kingPosition[0] + "," + kingPosition[1];
-            if (targetedSquares.includes(kingPosition)) {
-                this.whitePlayer.isInCheck = true;
-                return true;
-            }
-        }
-        return false;
-    }
+    
     static clonePiece(piece) {
         if (piece.isCaptured || piece.type === "Empty") return null;
     
@@ -285,6 +259,7 @@ export class Game {
         newPiece.firstMove = piece.firstMove;
         newPiece.justMoved = piece.justMoved;
         newPiece.isCaptured = piece.isCaptured;
+        newPiece.moves = piece.moves;
         
         return newPiece;
     }
@@ -310,6 +285,7 @@ export class Game {
     }
     
     static legalMoves(allPieces, color) {
+        
         let allMoves = [];
         let legalMoves = [];
         allPieces.forEach((piece) => {
@@ -340,7 +316,8 @@ export class Game {
                 }
             });
         });
-            
+        
+        
         return legalMoves;
     }
 
