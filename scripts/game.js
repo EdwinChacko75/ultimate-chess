@@ -303,20 +303,20 @@ export class Game {
                 piece.moves = [];
             }
         });
+        let clonedPieces = allPieces.map(Game.clonePiece).filter(piece => piece !== null);
+        let testBoard = new ChessBoard(clonedPieces);
+        testBoard.updateTargetedSquares();
 
         allMoves.forEach((move) => {
-            let clonedPieces = allPieces.map(Game.clonePiece).filter(piece => piece !== null);
-
             let kingPosition = Game.kingPosition(allPieces, color);
-            let testBoard = new ChessBoard(clonedPieces);
-            testBoard.updateTargetedSquares();
             if (move.piece === "King") {
                 kingPosition = [move.end[0], move.end[1]];
             }
-            Player.makeTestMove(testBoard, move);
+            let oldBoardState = Player.makeTestMove(testBoard, move);
             if (Game.isLegalMove(testBoard, color, `${kingPosition[0]},${kingPosition[1]}`)){
                 legalMoves.push(move);
             }
+            Player.undoTestMove(testBoard, move, oldBoardState);
         });
         legalMoves.forEach((move) => {
             allPieces.forEach((piece) => {
@@ -325,7 +325,6 @@ export class Game {
                 }
             });
         });
-        
         
         return legalMoves;
     }

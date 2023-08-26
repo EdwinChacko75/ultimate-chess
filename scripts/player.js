@@ -147,34 +147,45 @@ export class AI extends Player {
     constructor(name, color, difficulty) {
         super(name, color);
         this.difficulty = difficulty;    
-        this.bestMove = null;   
         this.counter = 0; 
         this.pruned = 0;
         this.zorbisted = 0;
     }
-
+    // TT not storing all explored positions 
     decideMove(game) {
         let clonedPieces = Game.allPieces(game).map(Game.clonePiece).filter(piece => piece !== null);
         let newBoard = new ChessBoard(clonedPieces, this.color);
-        let best = this.minimax(game, newBoard, -Infinity, Infinity, true, 1);
-        for (let i = 2; i <= this.difficulty; i++) {
-            console.log(this.counter,this.pruned, this.zorbisted);
-            this.counter = 0;
-            this.pruned = 0;
-            this.zorbisted = 0;
-            best = this.minimax(game, newBoard, -Infinity, Infinity, true, i);
-            this.bestMove = best.move;
-        }
-        this.bestMove = null;
-        console.log(best);
 
+        // Iterative deepening logic
+        // let best = { score: -Infinity, move: null };
+        // for (let i = 1; i <= this.difficulty; i++) {
+        //     this.counter = 0;
+        //     this.pruned = 0;
+        //     this.zorbisted = 0;
+        //     best = this.minimax(game, newBoard, -Infinity, Infinity, true, i, best.move);
+        // }
+        let best = this.minimax(game, newBoard, -Infinity, Infinity, true, this.difficulty);
+
+        this.bestMove = null;
         return best.move;
     }
-    minimax(game, board, alpha, beta, maximizingPlayer, depth) {
+    minimax(game, board, alpha, beta, maximizingPlayer, depth, previousBestMove = null) {
         this.counter++;
         let playerColor = maximizingPlayer ? game.turn.color : game.turn.color === 'white' ? 'black' : 'white';
-        let score = this.evaluateBoard(board, playerColor, maximizingPlayer);
-        
+        let hash = getZobristHash(board);
+        let score = null;
+    
+        if (game.zobristCache.hasOwnProperty(hash)) {
+            score = game.zobristCache[hash].score;
+            if (game.zobristCache[hash].depth >= depth) {
+                this.zorbisted++;
+                return game.zobristCache[hash];
+            }
+        }
+        else {
+            score = this.evaluateBoard(board, playerColor, maximizingPlayer);
+        }
+
         if (depth === 0 || score === 10000 || score === -10000) {
             return { score: score, move: null };
         }
@@ -185,21 +196,15 @@ export class AI extends Player {
         let clonedPieces = board.pieces.map(Game.clonePiece).filter(piece => piece !== null);
         let testBoard = new ChessBoard(clonedPieces);
         let moves = Game.legalMoves(testBoard.pieces, playerColor);
-        // if (this.bestMove !== null) {
-        //     moves.unshift(this.bestMove);
-            
-        // }
 
-        let hash = getZobristHash(testBoard);
-        if (game.zobristCache[hash] !== undefined) {
-            if (game.zobristCache[hash].depth >= depth) {
-                this.zorbisted++;
-                return game.zobristCache[hash];
-            }
-            else {
-                game.zobristCache[hash] = undefined;
-            }
-        }
+        // Part of iterative deepening logic
+        // if (previousBestMove !== null) {
+        //     let previousBestMoveIndex = moves.findIndex(move => move.start[0] === previousBestMove.start[0] && move.start[1] === previousBestMove.start[1] && move.end[0] === previousBestMove.end[0] && move.end[1] === previousBestMove.end[1]);
+        //     if (previousBestMoveIndex !== -1) {
+        //         moves.splice(previousBestMoveIndex, 1);
+        //         moves.unshift(previousBestMove);
+        //     }
+        // }
 
         // sorting moves to prune more branches
         // moves.sort((a, b) => {
@@ -211,8 +216,8 @@ export class AI extends Player {
 
         for (let i = 0; i < moves.length; i++) {
             let oldBoardState = Player.makeTestMove(testBoard, moves[i]);
-            this.updateTestBoardPieces(testBoard);
-
+            // Still unknown if this line benefits or hurts performance
+            // this.updateTestBoardPieces(testBoard);
             let evaluation = this.minimax(game, testBoard, alpha, beta, !maximizingPlayer, depth - 1);
             if (evaluation.move === null) {
                 evaluation.move = moves[i];
@@ -230,14 +235,26 @@ export class AI extends Player {
                 }
                 beta = Math.min(beta, evaluation.score);
             }
+            // this may make it slower rather than faster. it needs to be tested before implementation
+            // it stores every position evaluated, even when a best move isnt associated with it
+            // let testBoardHash = getZobristHash(testBoard);
+            // if (testBoardHash !== hash && (game.zobristCache[testBoardHash] === undefined || game.zobristCache[testBoardHash].move === null || game.zobristCache[testBoardHash].depth < depth)) {
+            //     this.TTupdates++;
+            //     // can use evaluation instead of null for speed but this needs to be tested before implementation
+            //     game.zobristCache[testBoardHash] = { score: evaluation.score, move: null, depth: 0 };
+            // }
+            
             Player.undoTestMove(testBoard, moves[i], oldBoardState);
             if (beta <= alpha) {
                 this.pruned++;
                 break;
             }
         }
-        
-        game.zobristCache[hash] = { score: bestScore, move: bestMove , depth};
+
+        if ((game.zobristCache[hash] === undefined || game.zobristCache[hash].move === null || game.zobristCache[hash].depth < depth) && bestMove !== null) {
+            this.TTupdates++;
+            game.zobristCache[hash] = { score: bestScore, move: bestMove , depth};
+        }
         return { score: bestScore, move: bestMove };
     }
     
@@ -248,20 +265,16 @@ export class AI extends Player {
         
         let kingPosition = Game.kingPosition(allPieces, playerColor);
 
-        try {
-            let king = board[kingPosition[0]][kingPosition[1]];
-        } catch (error) {
-            console.log(kingPosition, board);
-        }
+        let king = board[kingPosition[0]][kingPosition[1]];
         
-        // if (Game.legalMoves(allPieces, playerColor).length === 0) {
-        //     if(!king.isSafe(kingPosition, testBoard.whiteTargetedSquares, testBoard.blackTargetedSquares)) {
-        //         return maximizingPlayer ? -10000 : 10000;
-        //     }
-        //     else {
-        //         return 0;
-        //     }
-        // }
+        if (Game.legalMoves(allPieces, playerColor).length === 0) {
+            if(!king.isSafe(kingPosition, testBoard.whiteTargetedSquares, testBoard.blackTargetedSquares)) {
+                return maximizingPlayer ? -10000 : 10000;
+            }
+            else {
+                return 0;
+            }
+        }
 
         for (let row = 0; row < 8; row++) {
           for (let col = 0; col < 8; col++) {

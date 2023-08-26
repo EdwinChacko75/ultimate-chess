@@ -306,7 +306,6 @@ export class King extends Piece {
         } else {
             opponentMoves = whiteTargets;
         }
-        
         if (opponentMoves === undefined) {
             return true;
         }

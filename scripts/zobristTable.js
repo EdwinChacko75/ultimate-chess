@@ -62,7 +62,6 @@ function initializeZobristTable() {
         BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) * BigInt(2)**BigInt(64),
         BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) * BigInt(2)**BigInt(64),
         BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) * BigInt(2)**BigInt(64)
-        
     ];
     
     table.enPassant = new Array(8).fill(0).map(() => BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) * BigInt(2)**BigInt(64));
@@ -70,38 +69,72 @@ function initializeZobristTable() {
     return table;
 }
 
+// This function generates a Zobrist key for a given chessboard.
+// A Zobrist key is a unique identifier for a particular chessboard configuration,
+// and is used to speed up the evaluation of chess positions.
 export function getZobristHash(chessBoard) {
+    // Initialize the hash to 0.
     let hash = BigInt(0);
+
+    // Get the board from the chessboard.
     let board = chessBoard.board;
 
-    for (let i=0; i < 8; i++) {
-        for (let j=0; j < 8 ; j++) {
+    // Loop over all the squares on the board.
+    for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+            // Get the piece at the current square.
             let piece = board[i][j];
+
+            // If the square is empty, continue to the next square.
             if (piece.type === "Empty") {
                 continue;
             }
+
+            // Get the index of the piece in the piece mapping.
             let pieceIndex = pieceMapping[piece.color + piece.type];
+
+            // XOR the hash with the Zobrist key for the piece at the current square.
             hash = hash ^ BigInt(zobristTable.pieces[i][j][pieceIndex]);
         }
     }
+
+    // Get the castling rights from the chessboard.
     let castling = chessBoard.castling;
+
+    // If white has kingside castling rights, XOR the hash with the Zobrist key for white kingside castling.
     if (castling.whiteKingside) {
         hash = hash ^ BigInt(zobristTable.castling[castlingMapping.whiteKingside]);
     }
+
+    // If white has queenside castling rights, XOR the hash with the Zobrist key for white queenside castling.
     if (castling.whiteQueenside) {
         hash = hash ^ BigInt(zobristTable.castling[castlingMapping.whiteQueenside]);
     }
+
+    // If black has kingside castling rights, XOR the hash with the Zobrist key for black kingside castling.
     if (castling.blackKingside) {
         hash = hash ^ BigInt(zobristTable.castling[castlingMapping.blackKingside]);
     }
+
+    // If black has queenside castling rights, XOR the hash with the Zobrist key for black queenside castling.
     if (castling.blackQueenside) {
         hash = hash ^ BigInt(zobristTable.castling[castlingMapping.blackQueenside]);
     }
+
+    // Get the en passant square from the chessboard.
     let enPassant = chessBoard.enPassant;
+
+    // If there is an en passant square, XOR the hash with the Zobrist key for the en passant square.
     if (enPassant !== null) {
         hash = hash ^ BigInt(zobristTable.enPassant[enPassantMapping[enPassant]]);
     }
+
+    // Get the turn from the chessboard.
     let turn = chessBoard.turn;
+
+    // XOR the hash with the Zobrist key for the turn.
     hash = hash ^ BigInt(zobristTable.turn[turnMapping[turn]]);
+
+    // Return the hash.
     return hash;
 }

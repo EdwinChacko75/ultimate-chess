@@ -14,3 +14,5 @@ function startGame() {
 
 document.addEventListener("DOMContentLoaded", startGame());
 document.getElementById('startNewGame').addEventListener('click', startGame);
+
+
