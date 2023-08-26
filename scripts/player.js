@@ -2,6 +2,7 @@ import {ChessBoard, c} from "./chessBoard.js";
 import {Piece, Pawn, Rook, Bishop, Queen, King, Knight, Empty} from "./piece.js";
 import {Move} from "./move.js";
 import {Game} from "./game.js";
+import { getZobristHash } from "./zobristTable.js";
 
 export class Player {
     constructor(name, color) {
@@ -52,6 +53,13 @@ export class Player {
                     piece.justMoved = false;
                 } else {
                     piece.justMoved = true;
+                    // if the pawn is on an enpassant row, update chessBoard.enPassant
+                    if (piece.position[0] === 4 || piece.position[0] === 3) {
+                        chessBoard.enPassant = chessBoard.rows[piece.position[1]];
+                        chessBoard.enPassant = [piece.position[0] + 1, piece.position[1]];
+                    } else {
+                        chessBoard.enPassant = null;
+                    }
                 }
             }
         }
@@ -138,17 +146,26 @@ export class Player {
 export class AI extends Player {
     constructor(name, color, difficulty) {
         super(name, color);
-        this.difficulty = difficulty;       
+        this.difficulty = difficulty;    
+        this.bestMove = null;   
         this.counter = 0; 
         this.pruned = 0;
+        this.zorbisted = 0;
     }
 
     decideMove(game) {
-        this.moves = Game.legalMoves(Game.allPieces(game),this.color);
-        let move = this.moves[Math.floor(Math.random() * this.moves.length)];
         let clonedPieces = Game.allPieces(game).map(Game.clonePiece).filter(piece => piece !== null);
         let newBoard = new ChessBoard(clonedPieces, this.color);
-        let best = this.minimax(game, newBoard, -Infinity, Infinity, true, this.difficulty);
+        let best = this.minimax(game, newBoard, -Infinity, Infinity, true, 1);
+        for (let i = 2; i <= this.difficulty; i++) {
+            console.log(this.counter,this.pruned, this.zorbisted);
+            this.counter = 0;
+            this.pruned = 0;
+            this.zorbisted = 0;
+            best = this.minimax(game, newBoard, -Infinity, Infinity, true, i);
+            this.bestMove = best.move;
+        }
+        this.bestMove = null;
         console.log(best);
 
         return best.move;
@@ -168,6 +185,22 @@ export class AI extends Player {
         let clonedPieces = board.pieces.map(Game.clonePiece).filter(piece => piece !== null);
         let testBoard = new ChessBoard(clonedPieces);
         let moves = Game.legalMoves(testBoard.pieces, playerColor);
+        // if (this.bestMove !== null) {
+        //     moves.unshift(this.bestMove);
+            
+        // }
+
+        let hash = getZobristHash(testBoard);
+        if (game.zobristCache[hash] !== undefined) {
+            if (game.zobristCache[hash].depth >= depth) {
+                this.zorbisted++;
+                return game.zobristCache[hash];
+            }
+            else {
+                game.zobristCache[hash] = undefined;
+            }
+        }
+
         // sorting moves to prune more branches
         // moves.sort((a, b) => {
         //     let aPiece = testBoard.board[a.start[0]][a.start[1]];
@@ -203,7 +236,8 @@ export class AI extends Player {
                 break;
             }
         }
-    
+        
+        game.zobristCache[hash] = { score: bestScore, move: bestMove , depth};
         return { score: bestScore, move: bestMove };
     }
     
@@ -213,16 +247,21 @@ export class AI extends Player {
         let allPieces = testBoard.pieces;
         
         let kingPosition = Game.kingPosition(allPieces, playerColor);
-        let king = board[kingPosition[0]][kingPosition[1]];
-        
-        if (Game.legalMoves(allPieces, playerColor).length === 0) {
-            if(!king.isSafe(kingPosition, testBoard.whiteTargetedSquares, testBoard.blackTargetedSquares)) {
-                return maximizingPlayer ? -10000 : 10000;
-            }
-            else {
-                return 0;
-            }
+
+        try {
+            let king = board[kingPosition[0]][kingPosition[1]];
+        } catch (error) {
+            console.log(kingPosition, board);
         }
+        
+        // if (Game.legalMoves(allPieces, playerColor).length === 0) {
+        //     if(!king.isSafe(kingPosition, testBoard.whiteTargetedSquares, testBoard.blackTargetedSquares)) {
+        //         return maximizingPlayer ? -10000 : 10000;
+        //     }
+        //     else {
+        //         return 0;
+        //     }
+        // }
 
         for (let row = 0; row < 8; row++) {
           for (let col = 0; col < 8; col++) {

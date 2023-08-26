@@ -2,6 +2,7 @@ import {ChessBoard, c} from "./chessBoard.js";
 import {Piece, Pawn, Rook, Bishop, Queen, King, Knight, Empty} from "./piece.js";
 import {Move} from "./move.js";
 import {Player, AI} from "./player.js";
+import { getZobristHash,zobristTable, pieceMapping, castlingMapping, enPassantMapping, turnMapping } from './zobristTable.js';
 
 export class Game {
     constructor(whitePlayer, blackPlayer, mode) {
@@ -14,6 +15,12 @@ export class Game {
         this.isOver = false; 
         this.difficulty;
         this.moveCounter = 0;
+        this.zobristTable = zobristTable;
+        this.pieceMapping = pieceMapping;
+        this.castlingMapping = castlingMapping;
+        this.enPassantMapping = enPassantMapping;
+        this.turnMapping = turnMapping;
+        this.zobristCache = {};
     }
     static allPieces(game) {
         return game.whitePlayer.pieces.concat(game.blackPlayer.pieces);
@@ -24,17 +31,17 @@ export class Game {
         element.style.display = "none";
         this.gameLoop();
     }
-
     async gameLoop() {
         while (!this.isOver) {             
             let move = this.turn instanceof AI ? this.turn.decideMove(this) : await this.waitForPlayerMove(this);
             await this.makeMove(move);
             await this.houseKeeping();
             if (!(this.turn instanceof AI)) {
-                console.log(`The AI examined ${this.blackPlayer.counter} positions, pruned ${this.blackPlayer.pruned} branches.`)
+                console.log(`The AI examined ${this.blackPlayer.counter} positions, pruned ${this.blackPlayer.pruned} branches, and had ${this.blackPlayer.zorbisted} branches cached.`)
             }
             this.blackPlayer.counter = 0;
             this.blackPlayer.pruned = 0;
+            this.blackPlayer.zorbisted = 0;
         }
         if (this.isOver) {
             setTimeout(() => this.gameLoop(), 0);
@@ -42,9 +49,9 @@ export class Game {
             return;
         }  
     }
-    
     async houseKeeping() {
         let nextTurnColor = this.turn.color === this.whitePlayer.color ? 'black' : 'white';
+        this.board.turn = nextTurnColor;
         this.board.updateTargetedSquares();
         let kingPosition = Game.kingPosition(this.board.pieces, nextTurnColor);
         let king = this.board.board[kingPosition[0]][kingPosition[1]];
@@ -73,7 +80,6 @@ export class Game {
         await new Promise(resolve => setTimeout(resolve, 0));
         
     }
-
     waitForPlayerMove(game) {
         return new Promise(resolve => {
             const boardElement = document.getElementById("board");
@@ -93,11 +99,10 @@ export class Game {
             boardElement.addEventListener('click', onClick);
         });
     }
-    
     async makeMove(move) {
-        
         let start = move.start;
         let end = move.end;
+        let chessBoard = this.board;
         let board = this.board.board;
         let piece = board[start[0]][start[1]];
         let startCoords = ChessBoard.indicesToCoords(start);
@@ -116,6 +121,11 @@ export class Game {
                     piece.justMoved = false;
                 } else {
                     piece.justMoved = true;
+                    if (piece.position[0] === 4 || piece.position[0] === 3) {
+                        chessBoard.enPassant = chessBoard.rows[piece.position[1]];
+                    } else {
+                        chessBoard.enPassant = null;
+                    }
                 }
             }
         }
@@ -203,7 +213,6 @@ export class Game {
                 });
             }
         }      
-        
         let element = document.querySelectorAll('.lastmove');
         if (element) {
             element.forEach((el) => {

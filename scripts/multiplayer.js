@@ -2,12 +2,18 @@ import {Game} from "./game.js";
 import {Player} from "./player.js";
 
 
-document.addEventListener("DOMContentLoaded", () => {
+function startGame() {
+    document.getElementById('startNewGame').removeEventListener('click', startGame);
     let white = new Player('player1', 'white');
     let black = new Player('player2', 'black');
     let game = new Game(white, black, 'multiplayer');
     game.startGame(white);
-});
+    document.getElementById('startNewGame').addEventListener('click', startGame);
+}
+
+document.addEventListener("DOMContentLoaded", startGame());
+document.getElementById('startNewGame').addEventListener('click', startGame);
+
 
 document.addEventListener("DOMContentLoaded", (event)=> {
     var canvas = document.getElementById('myCanvas');

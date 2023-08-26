@@ -225,7 +225,6 @@ export class Queen extends Piece {
     }
     getMoves(chessBoard) {
         this.moves = this.getMovesFromDirection(chessBoard, this.directions);  
-    
     }
     
 }
@@ -237,9 +236,13 @@ export class King extends Piece {
         this.value = 10000;
     }
     getMoves(chessBoard) {
-        
+        chessBoard.castling = {
+            whiteKingside: false,
+            whiteQueenside: false,
+            blackKingside: false,
+            blackQueenside: false
+        };
         let board = chessBoard.board;
-
         let moves = this.getMovesFromDirection(chessBoard, this.directions);
 
         let row = this.position[0];
@@ -258,11 +261,18 @@ export class King extends Piece {
                     isSafe = false;
                     break;
                 }
+
                 i++;
 
             }
             if (isSafe && board[row][col + i].type === "Rook" && board[row][col + i].color === this.color && board[row][col + i].firstMove) {
                 // check that intermediate squares are safe
+                
+                if (this.color === 'black') {
+                    chessBoard.castling.blackKingside = true;
+                } else {
+                    chessBoard.castling.whiteKingside = true;
+                }
                 moves.push(new Move(this.type, [row,col], [row, col + i - Math.floor(i/2)], new Move(board[row][col + i].type, [row, col + i], [row, col + 1], false)));
             }
             // long castle
@@ -277,6 +287,12 @@ export class King extends Piece {
             }        
             if (board[row][col - j].type === "Rook" && board[row][col - j].color === this.color && board[row][col - j].firstMove) {
                 //check that intermediate squares are safe
+                
+                if (this.color === 'black') {
+                    chessBoard.castling.blackQueenside = true;
+                } else {
+                    chessBoard.castling.whiteQueenside = true;
+                }
                 moves.push(new Move(this.type, [row,col], [row, col - j + Math.floor(j/2)], new Move(board[row][col - j].type, [row, col - j], [row, col - 1], false)));
             }
         }

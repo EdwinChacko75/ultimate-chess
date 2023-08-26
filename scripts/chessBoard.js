@@ -2,16 +2,32 @@ import {Piece, Pawn, Rook, Bishop, Queen, King, Knight, Empty} from "./piece.js"
 import {Move} from "./move.js";
 import {Game} from "./game.js";
 import {Player, AI} from "./player.js";
+import { getZobristHash,zobristTable, pieceMapping, castlingMapping, enPassantMapping, turnMapping } from './zobristTable.js';
 
 export let c = 1;
 export class ChessBoard {
     constructor(initialPieces) {
         this.color = "white";
         this.opponent = 'black';
+        this.turn = 'white';
         this.board = [];
         this.whiteTargetedSquares = [];
         this.blackTargetedSquares = [];
         this.pieces = initialPieces;
+        this.zobristTable = zobristTable;
+        this.pieceMapping = pieceMapping;
+        this.castlingMapping = castlingMapping;
+        this.enPassantMapping = enPassantMapping;
+        this.turnMapping = turnMapping;        
+        this.enPassant = null;
+        this.columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        this.castling = {
+            whiteKingside: false,
+            whiteQueenside: false,
+            blackKingside: false,
+            blackQueenside: false
+        };
+        
 
         for (let i = 0; i < 8; i++) {
             let row = [];
@@ -31,7 +47,7 @@ export class ChessBoard {
         }
 
         this.updateTargetedSquares();
-        
+
     }
    
     clickEvent(event) {
