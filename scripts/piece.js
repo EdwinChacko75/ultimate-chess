@@ -5,15 +5,16 @@ import {Player, AI} from "./player.js";
 
 export class Piece {
     constructor(type, color, position) {
-        this.type = type;
-        this.color = color;
-        this.position = position;
-        this.firstMove = true;
-        this.isCaptured = false;
-        this.moves = [];
-        this.targets = [];
-        this.promoted = false;
+        this.type = type; // the type of piece
+        this.color = color; // the color of the piece
+        this.position = position; // position on board in indices [row, col]
+        this.firstMove = true; // is it the first time this piece is moving 
+        this.isCaptured = false; // is this piece captured
+        this.moves = []; // the moves, and later, legal moves
+        this.targets = []; // squares this piece controls
+        this.promoted = false; // is this piece promoted from a pawn
     }
+    // Create a piece given piece type, color, position
     static createPiece(type, color, position) {
         switch (type) {
             case 'Pawn':
@@ -34,6 +35,7 @@ export class Piece {
                 throw new Error('Invalid piece type');
         }
     }
+    // Gets all the potential moves of a piece given its movement vectors
     getMovesFromDirection(chessBoard, directions) {
         let moves = [];
         this.targets = [];
