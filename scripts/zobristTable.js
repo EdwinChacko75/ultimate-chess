@@ -1,4 +1,11 @@
+// This file handles the creation of the zorbist hash table,
+// retrieval of hashes for positions, and mapping of 
+// item to 3d square indices
+
+// Create the table
 export const zobristTable = initializeZobristTable();
+
+// Mapping piece indices
 export const pieceMapping = {
     'whitePawn': 0,
     'whiteKnight': 1,
@@ -13,12 +20,16 @@ export const pieceMapping = {
     'blackQueen': 10,
     'blackKing': 11,
 };
+
+// Mapping castling indices
 export const castlingMapping = {
     'whiteKingside': 0,
     'whiteQueenside': 1,
     'blackKingside': 2,
     'blackQueenside': 3
 };
+
+// Mapping En Passant indices
 export const enPassantMapping = {
     'a': 0,
     'b': 1,
@@ -29,12 +40,16 @@ export const enPassantMapping = {
     'g': 6,
     'h': 7
 };
+
+// Mapping turn inidces
 export const turnMapping = {
     'white': 0,
     'black': 1
 };
 
+// Functionn that returns the zorbist hash table
 function initializeZobristTable() {
+    // Create empty table 
     let table = {
         pieces: [],
         castling: [],
@@ -42,11 +57,14 @@ function initializeZobristTable() {
         turn: [],   
     };
     
+    // Creating hashes for white and black turn
     let whiteTurn = BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) * BigInt(2)**BigInt(64);
     let blackTurn = BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) * BigInt(2)**BigInt(64);
 
+    // Adding hashes to table
     table.turn = [whiteTurn, blackTurn];
     
+    // Creating 8x8 list in table, populated by hashes corresponding to the board
     for (let i = 0; i < 8; i++) {
         table.pieces.push([]);
         for (let j = 0; j < 8; j++) {
@@ -57,6 +75,7 @@ function initializeZobristTable() {
         }
     }
     
+    // Creating and assigning castling hashes
     table.castling = [
         BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) * BigInt(2)**BigInt(64),
         BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) * BigInt(2)**BigInt(64),
@@ -64,6 +83,7 @@ function initializeZobristTable() {
         BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) * BigInt(2)**BigInt(64)
     ];
     
+    // Creating and assinging castling hashes
     table.enPassant = new Array(8).fill(0).map(() => BigInt(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER)) * BigInt(2)**BigInt(64));
 
     return table;
