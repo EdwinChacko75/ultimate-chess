@@ -155,6 +155,35 @@ export class AI extends Player {
     decideMove(game) {
         let clonedPieces = Game.allPieces(game).map(Game.clonePiece).filter(piece => piece !== null);
         let newBoard = new ChessBoard(clonedPieces, this.color);
+        const heroku_url = 'https://chess-engine-348f66131dc9.herokuapp.com/'
+        // Send the JSON using a POST request
+        const message = {
+            "board": game.board.board,
+            "turn": game.turn,
+            "enPassantSquare": game.board.enPassant, // Example square
+            "depth": game.depth,
+            "counter": 0,
+            "pruned": 0,
+            "zorbisted": 0,
+            "whiteKingsideCastling": game.board.whiteKingsideCastling,
+            "whiteQueensideCastling" : game.board.whiteQueensideCastling,
+            "blackKingsideCastling" : game.board.blackKingsideCastling,
+            "blackQueensideCastling" : game.board.blackQueensideCastling
+        };
+        fetch(heroku_url, {
+            method: "POST", // or "PUT" depending on your API
+            headers: {
+                "Content-Type": "application/json" // Specify the type of the request
+            },
+            body: JSON.stringify(message) // Convert the data object to a JSON string
+        })
+        .then(response => response.json()) // Parse the JSON response from the API
+        .then(result => {
+            console.log("Success:", result); // Handle the result
+        })
+        .catch(error => {
+            console.error("Error:", error); // Handle errors
+        });
 
         // Iterative deepening logic
         // let best = { score: -Infinity, move: null };
@@ -164,8 +193,8 @@ export class AI extends Player {
         //     this.zorbisted = 0;
         //     best = this.minimax(game, newBoard, -Infinity, Infinity, true, i, best.move);
         // }
-        let best = this.minimax(game, newBoard, -Infinity, Infinity, true, this.difficulty);
-
+        // let best = this.minimax(game, newBoard, -Infinity, Infinity, true, this.difficulty);
+        
         this.bestMove = null;
         return best.move;
     }
